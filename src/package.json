@@ -87,7 +87,8 @@
 				{
 					"type": "webview",
 					"id": "zgsm.SidebarProvider",
-					"name": "%views.sidebar.name%"
+					"name": "%views.sidebar.name%",
+					"icon": "assets/images/shenma_robot_logo_big.png"
 				}
 			]
 		},
@@ -240,6 +241,12 @@
 				"command": "zgsm.toggleAutoApprove",
 				"title": "%command.toggleAutoApprove.title%",
 				"category": "%configuration.title%"
+			},
+			{
+				"command": "zgsm.generateCommitMessage",
+				"title": "%command.generateCommitMessage.title%",
+				"category": "%configuration.title%",
+				"icon": "assets/images/shenma_robot_logo_big.png"
 			}
 		],
 		"menus": {
@@ -420,6 +427,13 @@
 					"command": "zgsm.rejectIssue",
 					"group": "navigation@2",
 					"when": "commentThread == CostrictCodeReview"
+				}
+			],
+			"scm/title": [
+				{
+					"command": "zgsm.generateCommitMessage",
+					"group": "navigation",
+					"when": "scmProvider == git"
 				}
 			]
 		},
