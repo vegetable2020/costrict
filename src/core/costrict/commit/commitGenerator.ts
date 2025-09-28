@@ -1,13 +1,12 @@
 import * as vscode from "vscode"
 import { exec } from "child_process"
 import { promisify } from "util"
-import OpenAI from "openai"
-import { v7 as uuidv7 } from "uuid"
 import type { GitDiffInfo, CommitMessageSuggestion, CommitGenerationOptions } from "./types"
-import { ZgsmAuthStorage, ZgsmAuthConfig } from "../auth"
-import { COSTRICT_DEFAULT_HEADERS } from "../../../shared/headers"
-import { zgsmDefaultModelId, ProviderSettings } from "@roo-code/types"
+import { ZgsmAuthStorage } from "../auth"
+import { ProviderSettings } from "@roo-code/types"
 import type { ClineProvider } from "../../webview/ClineProvider"
+import { t } from "../../../i18n"
+import { singleCompletionHandler } from "../../../utils/single-completion-handler"
 
 const execAsync = promisify(exec)
 
@@ -59,7 +58,8 @@ export class CommitMessageGenerator {
 
 			return diffInfo
 		} catch (error) {
-			throw new Error(`Failed to get git diff: ${error instanceof Error ? error.message : String(error)}`)
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			throw new Error(t("commit:commit.error.failedToGetGitDiff", { 0: errorMessage }))
 		}
 	}
 
@@ -104,7 +104,7 @@ export class CommitMessageGenerator {
 		const diffInfo = await this.getGitDiff()
 
 		if (!this.hasChanges(diffInfo)) {
-			throw new Error("No changes detected in the workspace")
+			throw new Error(t("commit:commit.error.noChanges"))
 		}
 
 		// Try AI generation first, fallback to rule-based if AI fails
@@ -128,53 +128,31 @@ export class CommitMessageGenerator {
 	): Promise<CommitMessageSuggestion> {
 		// Get authentication tokens
 		const tokens = await ZgsmAuthStorage.getInstance().getTokens()
-		if (!tokens?.access_token) {
-			throw new Error("Authentication required for AI commit generation")
-		}
-
+		// if (!tokens?.access_token) {
+		// 	throw new Error(t("commit:commit.error.authRequired"))
+		// }
+		let lang = vscode.env.language
 		// Get API configuration
 		let apiConfiguration: ProviderSettings | undefined
 		if (this.provider) {
 			const state = await this.provider.getState()
 			apiConfiguration = state.apiConfiguration
+			lang = state.language || lang
 		}
 
-		// Create OpenAI client similar to ZgsmAiHandler
-		// Priority use apiConfiguration.zgsmBaseUrl, fallback to ZgsmAuthConfig.getInstance().getDefaultApiBaseUrl()
-		const baseUrl = apiConfiguration?.zgsmBaseUrl || ZgsmAuthConfig.getInstance().getDefaultApiBaseUrl()
-		const baseURL = `${baseUrl}/chat-rag/api/v1`
-		const openai = new OpenAI({
-			baseURL: baseURL,
-			apiKey: tokens.access_token,
-			defaultHeaders: {
-				...COSTRICT_DEFAULT_HEADERS,
-				"X-Request-ID": uuidv7(),
-			},
-		})
-
 		// Prepare prompt for AI
-		const prompt = this.buildAIPrompt(diffInfo, options)
-
-		const response = await openai.chat.completions.create({
-			model: apiConfiguration?.zgsmModelId || zgsmDefaultModelId,
-			messages: [
-				{
-					role: "system",
-					content:
-						"You are an expert at generating concise, meaningful commit messages based on git diff information. Follow conventional commit format when appropriate.",
-				},
-				{
-					role: "user",
-					content: prompt,
-				},
-			],
-			temperature: 0.7,
-			max_tokens: 200,
-		})
-
-		const aiMessage = response.choices[0]?.message?.content?.trim()
+		const systemPrompt =
+			"You are an expert at generating concise, meaningful commit messages based on git diff information. Follow conventional commit format when appropriate."
+		const aiMessage = await singleCompletionHandler(
+			apiConfiguration!,
+			this.buildAIPrompt(diffInfo, options),
+			systemPrompt,
+			{
+				language: lang,
+			},
+		)
 		if (!aiMessage) {
-			throw new Error("AI failed to generate commit message")
+			throw new Error(t("commit:commit.error.aiFailed"))
 		}
 
 		// Parse AI response into structured format
@@ -451,25 +429,25 @@ export class CommitMessageGenerator {
 		const lines: string[] = []
 
 		if (diffInfo.added.length > 0) {
-			lines.push("Added files:")
+			lines.push(t("commit:commit.files.added"))
 			diffInfo.added.forEach((file) => lines.push(`- ${file}`))
 		}
 
 		if (diffInfo.modified.length > 0) {
 			if (lines.length > 0) lines.push("")
-			lines.push("Modified files:")
+			lines.push(t("commit:commit.files.modified"))
 			diffInfo.modified.forEach((file) => lines.push(`- ${file}`))
 		}
 
 		if (diffInfo.deleted.length > 0) {
 			if (lines.length > 0) lines.push("")
-			lines.push("Deleted files:")
+			lines.push(t("commit:commit.files.deleted"))
 			diffInfo.deleted.forEach((file) => lines.push(`- ${file}`))
 		}
 
 		if (diffInfo.renamed.length > 0) {
 			if (lines.length > 0) lines.push("")
-			lines.push("Renamed files:")
+			lines.push(t("commit:commit.files.renamed"))
 			diffInfo.renamed.forEach((rename) => lines.push(`- ${rename}`))
 		}
 

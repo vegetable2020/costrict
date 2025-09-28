@@ -125,7 +125,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		const cachedWorkspacePath = getWorkspacePath()
 
 		// 3. Pre-build headers to avoid repeated creation
-		const _headers = this.buildHeaders(metadata, requestId, cachedClientId, cachedWorkspacePath)
+		const _headers = this.buildHeaders(metadata, requestId, cachedClientId, cachedWorkspacePath, this.chatType)
 
 		// 4. Handle O1 family models
 		if (isO1Family) {
@@ -174,6 +174,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 					)
 					.withResponse()
 				this.logger.info(`[ResponseID]:`, response.headers.get("x-request-id"))
+
 				stream = _stream
 				this.curStream = _stream
 				if (this.options.zgsmModelId === autoModeModelId) {
@@ -241,11 +242,12 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		requestId: string,
 		clientId: string,
 		workspacePath: string,
+		chatType?: string,
 	): Record<string, string> {
 		return {
 			"Accept-Language": metadata?.language || "en",
 			...this.headers,
-			"x-quota-identity": this.chatType || "system",
+			"x-quota-identity": chatType || "system",
 			"X-Request-ID": requestId,
 			"zgsm-task-id": metadata?.taskId || "",
 			"zgsm-request-id": requestId,
@@ -462,8 +464,13 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		const id = this.options.zgsmModelId ?? zgsmDefaultModelId
 
 		this.modelInfo =
-			(await getModels({ provider: "zgsm", baseUrl: this.baseURL, apiKey: this.options.zgsmAccessToken }))[id] ||
-			zgsmModels.default
+			(
+				await getModels({
+					provider: "zgsm",
+					baseUrl: `${this.options.zgsmBaseUrl?.trim() || ZgsmAuthConfig.getInstance().getDefaultApiBaseUrl()}`,
+					apiKey: this.options.zgsmAccessToken,
+				})
+			)[id] || zgsmModels.default
 	}
 
 	override getModel() {
@@ -476,16 +483,24 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		return { id, info, ...params }
 	}
 
-	async completePrompt(prompt: string): Promise<string> {
+	async completePrompt(prompt: string, systemPrompt?: string, metadata?: any): Promise<string> {
 		try {
 			const isAzureAiInference = this._isAzureAiInference(this.baseURL)
 			await this.fetchModel()
 			const model = this.getModel()
 			const modelInfo = model?.info
-
+			const requestId = uuidv7()
+			const cachedClientId = getClientId()
+			const cachedWorkspacePath = getWorkspacePath()
+			const messages = [{ role: "user", content: prompt }] as any[]
+			if (systemPrompt) {
+				messages.unshift({ role: "system", content: systemPrompt })
+			}
 			const requestOptions: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
 				model: model.id,
-				messages: [{ role: "user", content: prompt }],
+				messages: messages,
+				temperature: 0.9,
+				max_tokens: 200,
 			}
 
 			// Add max_tokens if needed
@@ -494,7 +509,18 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 			try {
 				response = await this.client.chat.completions.create(
 					requestOptions,
-					isAzureAiInference ? { path: OPENAI_AZURE_AI_INFERENCE_PATH } : {},
+					Object.assign(isAzureAiInference ? { path: OPENAI_AZURE_AI_INFERENCE_PATH } : {}, {
+						headers: {
+							...this.buildHeaders(
+								{ language: metadata.language, taskId: requestId },
+								requestId,
+								cachedClientId,
+								cachedWorkspacePath,
+								"system",
+							),
+						},
+						timeout: 10_000,
+					}),
 				)
 			} catch (error) {
 				throw handleOpenAIError(error, this.providerName)
@@ -654,12 +680,12 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		return this.chatType
 	}
 
-	cancelChat(type: ClineApiReqCancelReason): void {
+	cancelChat(type?: ClineApiReqCancelReason): void {
 		try {
 			this.curStream?.controller?.abort?.()
-			this.logger.info(`[cancelChat] Cancelled chat request: ${type}`)
+			this.logger.info(`[cancelChat] Cancelled chat request ${type}`)
 		} catch (error) {
-			console.log(`Error while cancelling message: ${error}`)
+			console.log(`Error while cancelling message ${error}`)
 		}
 	}
 }

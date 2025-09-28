@@ -2,6 +2,7 @@ import * as vscode from "vscode"
 import { CommitMessageGenerator } from "./commitGenerator"
 import type { CommitMessageSuggestion } from "./types"
 import type { ClineProvider } from "../../webview/ClineProvider"
+import { t } from "../../../i18n"
 
 /**
  * Service for handling commit-related operations in VSCode SCM
@@ -30,7 +31,7 @@ export class CommitService {
 	 */
 	async generateAndPopulateCommitMessage(): Promise<void> {
 		if (!this.generator) {
-			throw new Error("Commit service not initialized")
+			throw new Error(t("commit:commit.error.notInitialized"))
 		}
 
 		try {
@@ -38,11 +39,11 @@ export class CommitService {
 			await vscode.window.withProgress(
 				{
 					location: vscode.ProgressLocation.Notification,
-					title: "生成提交信息...",
+					title: t("commit:commit.progress.generating"),
 					cancellable: false,
 				},
 				async (progress) => {
-					progress.report({ increment: 0 })
+					progress.report({ increment: 20 })
 
 					// Generate commit message
 					const suggestion = await this.generator!.generateCommitMessage({
@@ -60,7 +61,7 @@ export class CommitService {
 			)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			vscode.window.showErrorMessage(`生成提交信息失败: ${errorMessage}`)
+			vscode.window.showErrorMessage(t("commit:commit.message.generationFailed", { error: errorMessage }))
 		}
 	}
 
@@ -81,7 +82,7 @@ export class CommitService {
 			repo.inputBox.value = commitMessage
 		} catch (error) {
 			await vscode.env.clipboard.writeText(commitMessage)
-			vscode.window.showInformationMessage(`提交信息已生成，但无法自动填充到输入框，提交信息已复制到剪贴板`)
+			vscode.window.showInformationMessage(t("commit:commit.message.copiedToClipboard"))
 		}
 	}
 

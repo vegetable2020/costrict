@@ -324,7 +324,7 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 			await handleGenerateCommitMessage(provider)
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			vscode.window.showErrorMessage(`生成提交信息失败: ${errorMessage}`)
+			vscode.window.showErrorMessage(`Failed to generate commit message: ${errorMessage}`)
 		}
 	},
 })

@@ -16,15 +16,16 @@ export async function handleGenerateCommitMessage(
 	provider: import("../../webview/ClineProvider").ClineProvider,
 ): Promise<void> {
 	const { CommitService } = await import("./commitService")
+	const { t } = await import("../../../i18n")
 
 	const workspaceRoot = CommitService.getWorkspaceRoot()
 	if (!workspaceRoot) {
-		throw new Error("No workspace folder found")
+		throw new Error(t("commit:commit.error.noWorkspace"))
 	}
 
 	const isGitRepo = await CommitService.isGitRepository(workspaceRoot)
 	if (!isGitRepo) {
-		throw new Error("Current workspace is not a git repository")
+		throw new Error(t("commit:commit.error.notGitRepo"))
 	}
 
 	const commitService = new CommitService()
