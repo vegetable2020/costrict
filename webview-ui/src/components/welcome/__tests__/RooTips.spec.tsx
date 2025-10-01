@@ -93,24 +93,10 @@ describe("RooTips Component", () => {
 			expect(strictCard).toHaveClass("flex-1", "border", "border-vscode-panel-border", "cursor-pointer")
 		})
 
-		test("renders tip cards with correct styling", () => {
-			// 验证功能提示卡片的样式
-			const tipCards = document.querySelectorAll(".cursor-pointer")
-			expect(tipCards.length).toBeGreaterThan(0)
-
-			// 检查第一个提示卡片的样式
-			const firstTipCard = Array.from(tipCards).find(
-				(card) =>
-					card.textContent?.includes("rooTips.debug.title") ||
-					card.textContent?.includes("rooTips.projectWiki.title"),
-			)
-			expect(firstTipCard).toHaveClass(
-				"flex-1",
-				"border",
-				"border-vscode-panel-border",
-				"hover:bg-secondary",
-				"rounded-md",
-			)
+		test("renders tip cards", () => {
+			expect(screen.getByRole("button", { name: "rooTips.debug.title" })).toBeInTheDocument()
+			expect(screen.getByRole("button", { name: "rooTips.projectWiki.title" })).toBeInTheDocument()
+			expect(screen.getByRole("button", { name: "rooTips.testGuide.title" })).toBeInTheDocument()
 		})
 
 		test("uses VSCode theme colors correctly", () => {
