@@ -37,14 +37,7 @@ const tips = [
 			e.preventDefault()
 			vscode.postMessage({
 				type: "mode",
-				text: "code",
-			})
-			vscode.postMessage({
-				type: "newTask",
-				text: "/test-guide",
-				values: {
-					checkProjectWiki: true,
-				},
+				text: "testguide",
 			})
 		},
 		titleKey: "rooTips.testGuide.title",
