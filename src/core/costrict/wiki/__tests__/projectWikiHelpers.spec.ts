@@ -44,7 +44,6 @@ vi.mock("../wiki-prompts/subtasks/constants", () => ({
 	subtaskDir: "/home/user/.roo/commands/costrict-project-wiki-tasks/",
 	MAIN_WIKI_FILENAME: "project-wiki.md",
 	SUBTASK_FILENAMES: {
-		VERSION_FILE: "version.md",
 		PROJECT_OVERVIEW_TASK_FILE: "01_Project_Overview_Analysis.md",
 		OVERALL_ARCHITECTURE_TASK_FILE: "02_Overall_Architecture_Analysis.md",
 		SERVICE_DEPENDENCIES_TASK_FILE: "03_Service_Dependencies_Analysis.md",
@@ -165,7 +164,6 @@ describe("projectWikiHelpers", () => {
 				isDirectory: () => true,
 			} as any)
 			vi.mocked(fs.promises.readdir).mockResolvedValue([
-				"version.md",
 				"01_Project_Overview_Analysis.md",
 				"02_Overall_Architecture_Analysis.md",
 				"03_Service_Dependencies_Analysis.md",

@@ -44,9 +44,9 @@ const RooTips = () => {
 					vscode.postMessage({
 						type: "newTask",
 						text: "/project-wiki",
-						values: {
-							checkProjectWiki: true,
-						},
+						// values: {
+						// 	checkProjectWiki: true,
+						// },
 					})
 				}, 300)
 			},
@@ -62,9 +62,9 @@ const RooTips = () => {
 					vscode.postMessage({
 						type: "newTask",
 						text: t("rooTips.testGuide.initPrompt"),
-						values: {
-							checkProjectWiki: true,
-						},
+						// values: {
+						// 	checkProjectWiki: true,
+						// },
 					})
 				}, 300)
 			},

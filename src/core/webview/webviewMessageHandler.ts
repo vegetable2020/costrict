@@ -557,9 +557,9 @@ export const webviewMessageHandler = async (
 			// agentically running promises in old instance don't affect our new
 			// task. This essentially creates a fresh slate for the new task.
 			try {
-				if (message.values?.checkProjectWiki) {
-					await ensureProjectWikiSubtasksExists()
-				}
+				// if (message.values?.checkProjectWiki) {
+				// 	await ensureProjectWikiSubtasksExists()
+				// }
 				await provider.createTask(message.text, message.images)
 				// Task created successfully - notify the UI to reset
 				await provider.postMessageToWebview({
