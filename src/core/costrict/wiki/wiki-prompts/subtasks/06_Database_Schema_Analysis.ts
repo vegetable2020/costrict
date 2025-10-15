@@ -1,6 +1,6 @@
 import { WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const DATABASE_SCHEMA_ANALYSIS_TEMPLATE = `# 数据库架构深度分析
+export const DATABASE_SCHEMA_ANALYSIS_TEMPLATE = (workspace: string) => `# 数据库架构深度分析
 
 ## 使用场景
 从代码仓库中分析数据库架构、表结构、索引设计、关系模型等，生成详细的数据库技术文档。
@@ -280,8 +280,8 @@ $$ language 'plpgsql';
 3. 关注数据完整性和安全性保证
 
 ## 输出文件命名
-\`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.DATABASE_SCHEMA_TASK_FILE}\`
-注意：如果${WIKI_OUTPUT_DIR} 目录不存在，则创建。
+\`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.DATABASE_SCHEMA_TASK_FILE}\`
+注意：如果${workspace}${WIKI_OUTPUT_DIR}目录不存在，则创建。
 
 ## 示例输出特征
 基于项目的数据库分析特征：

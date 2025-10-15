@@ -1,6 +1,6 @@
 import { WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const PROJECT_OVERVIEW_ANALYSIS_TEMPLATE = `# 项目技术概览分析
+export const PROJECT_OVERVIEW_ANALYSIS_TEMPLATE = (workspace: string) => `# 项目技术概览分析
 
 ## 使用场景
 生成项目的技术概述文档，包括项目定位、技术栈、开发规范等。
@@ -219,8 +219,8 @@ make build
 3. 提供实用的开发指导
 
 ## 输出文件命名
-\`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.PROJECT_OVERVIEW_TASK_FILE}\`
-注意：如果${WIKI_OUTPUT_DIR} 目录不存在，则创建。
+\`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.PROJECT_OVERVIEW_TASK_FILE}\`
+注意：如果${workspace}${WIKI_OUTPUT_DIR}目录不存在，则创建。
 
 ## 示例输出特征
 基于项目的分析特征：

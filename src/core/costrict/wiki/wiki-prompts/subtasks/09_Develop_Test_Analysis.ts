@@ -1,6 +1,6 @@
 import { WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const DEVELOP_TEST_ANALYSIS_TEMPLATE = `# 开发测试深度分析
+export const DEVELOP_TEST_ANALYSIS_TEMPLATE = (workspace: string) => `# 开发测试深度分析
 
 ## 使用场景
 从代码仓库中分析项目的开发环境和测试环境，生成详细的开发测试技术文档，包括项目启动机制、环境搭建、配置管理、调试机制、测试框架、测试运行等，为AI编程提供精准的开发测试上下文信息。
@@ -603,8 +603,8 @@ module.exports = {
 3. 关注测试框架和工具链的配置
 
 ## 输出文件命名
-\`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.DEVELOPMENT_TEST_ANALYSIS_TASK_FILE}\`
-注意：如果${WIKI_OUTPUT_DIR} 目录不存在，则创建。
+\`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.DEVELOPMENT_TEST_ANALYSIS_TASK_FILE}\`
+注意：如果${workspace}${WIKI_OUTPUT_DIR}目录不存在，则创建。
 
 ## 示例输出特征
 基于项目的开发测试分析特征：

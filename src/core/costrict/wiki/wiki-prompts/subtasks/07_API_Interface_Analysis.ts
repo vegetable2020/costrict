@@ -1,6 +1,6 @@
 import { WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const API_INTERFACE_ANALYSIS_TEMPLATE = `# API接口深度分析
+export const API_INTERFACE_ANALYSIS_TEMPLATE = (workspace: string) => `# API接口深度分析
 
 ## 使用场景
 从代码仓库中分析API接口设计、接口规范、数据格式、错误处理等，生成详细的API接口技术文档。
@@ -358,8 +358,8 @@ type UserResponse struct {
 3. 关注API安全性和性能优化
 
 ## 输出文件命名
-\`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.API_INTERFACE_TASK_FILE}\`
-注意：如果${WIKI_OUTPUT_DIR} 目录不存在，则创建。
+\`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.API_INTERFACE_TASK_FILE}\`
+注意：如果${workspace}${WIKI_OUTPUT_DIR}目录不存在，则创建。
 
 ## 示例输出特征
 基于项目的API分析特征：

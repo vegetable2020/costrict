@@ -1,6 +1,6 @@
 import { WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const INDEX_GENERATION_TEMPLATE = `# 项目技术文档索引生成任务
+export const INDEX_GENERATION_TEMPLATE = (workspace: string) => `# 项目技术文档索引生成任务
 
 ## 🎯 任务目标
 为 ${WIKI_OUTPUT_DIR} 文件夹下的技术文档生成结构化索引文件，便于AI快速导航和信息定位。
@@ -13,7 +13,7 @@ export const INDEX_GENERATION_TEMPLATE = `# 项目技术文档索引生成任务
 ## 🔍 信息提取规则
 
 ### 项目概述信息提取
-从 \`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.PROJECT_OVERVIEW_TASK_FILE}\` 文件中提取：
+从 \`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.PROJECT_OVERVIEW_TASK_FILE}\` 文件中提取：
 1. **项目定位**: 从"项目概述"或"项目定位"章节提取，控制在50字以内
 2. **技术栈**: 从"技术栈分析"章节提取主要技术组件，控制在40字以内
 3. **架构特点**: 从"架构设计"章节提取核心架构特色，控制在40字以内
@@ -22,7 +22,7 @@ export const INDEX_GENERATION_TEMPLATE = `# 项目技术文档索引生成任务
 ## 📋 严格输出格式要求
 
 ### 🔴 强制约束条件（必须严格遵守）
-1. **文档链接路径**: 必须使用 \`${WIKI_OUTPUT_DIR}\` 作为父路径前缀，格式为：\`${WIKI_OUTPUT_DIR}{文件名}\`
+1. **文档链接路径**: 必须使用 \`${workspace}${WIKI_OUTPUT_DIR}\` 作为父路径前缀，格式为：\`${workspace}${WIKI_OUTPUT_DIR}{文件名}\`
 2. **文档长度**: 整个索引文档严格控制在100行以内
 3. **内容范围**: 只包含文档目录和快速导航两部分，禁止添加其他内容
 4. **摘要长度**: 所有摘要信息严格控制在30字以内
@@ -69,7 +69,7 @@ src/
 \`\`\`\`
 
 ## ⚠️ 严格禁止事项
-1. ❌ 禁止使用 ./ 或 ../ 等相对路径前缀，必须使用 \`${WIKI_OUTPUT_DIR}\` 作为前缀
+1. ❌ 禁止使用 ./ 或 ../ 等相对路径前缀，必须使用 \`${workspace}${WIKI_OUTPUT_DIR}\` 作为前缀
 2. ❌ 禁止添加索引概述、使用说明、统计信息等额外内容
 3. ❌ 禁止摘要信息超过30字
 4. ❌ 禁止文档总行数超过100行
@@ -78,5 +78,5 @@ src/
 7. ❌ 禁止为不存在的文档创建索引条目
 
 ## 📁 输出文件命名
-\`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.INDEX_GENERATION_TASK_FILE}\`
-注意：如果${WIKI_OUTPUT_DIR} 目录不存在，则创建。`
+\`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.INDEX_GENERATION_TASK_FILE}\`
+注意：如果${workspace}${WIKI_OUTPUT_DIR}目录不存在，则创建。`

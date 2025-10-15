@@ -1,6 +1,6 @@
 import { WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const OVERALL_ARCHITECTURE_ANALYSIS_TEMPLATE = `# 整体架构深度分析
+export const OVERALL_ARCHITECTURE_ANALYSIS_TEMPLATE = (workspace: string) => `# 整体架构深度分析
 
 ## 使用场景
 从代码仓库中分析项目的整体架构设计，生成详细的架构文档，包括系统架构、模块划分、数据流等。
@@ -423,8 +423,8 @@ graph LR
 2. 重点分析架构设计思路和技术选型原因
 
 ## 输出文件命名
-\`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.OVERALL_ARCHITECTURE_TASK_FILE}\`
-注意：如果${WIKI_OUTPUT_DIR} 目录不存在，则创建。
+\`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.OVERALL_ARCHITECTURE_TASK_FILE}\`
+注意：如果${workspace}${WIKI_OUTPUT_DIR} 目录不存在，则创建。
 
 ## 示例输出特征
 基于项目的架构分析特征：

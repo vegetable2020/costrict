@@ -1,6 +1,6 @@
 import { WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const DEPLOY_ANALYSIS_TEMPLATE = `# 部署分析
+export const DEPLOY_ANALYSIS_TEMPLATE = (workspace: string) => `# 部署分析
 
 ## 使用场景
 从代码仓库中分析项目的部署架构、流程、配置等，生成详细的部署技术文档。
@@ -219,8 +219,8 @@ jobs:
 \`\`\`\`
 
 ## 输出文件命名
-\`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.DEPLOY_ANALYSIS_TASK_FILE}\`
-注意：如果${WIKI_OUTPUT_DIR} 目录不存在，则创建。
+\`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.DEPLOY_ANALYSIS_TASK_FILE}\`
+注意：如果${workspace}${WIKI_OUTPUT_DIR}目录不存在，则创建。
 
 ## 注意事项
 1. 必须基于实际的代码和配置进行分析，不能虚构部署架构

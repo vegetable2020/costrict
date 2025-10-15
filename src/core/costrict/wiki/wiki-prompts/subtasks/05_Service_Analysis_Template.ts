@@ -1,6 +1,6 @@
 import { WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const SERVICE_ANALYSIS_TEMPLATE = `# 服务模块深度分析
+export const SERVICE_ANALYSIS_TEMPLATE = (workspace: string) => `# 服务模块深度分析
 
 ## 使用场景
 从代码仓库中分析各个服务模块的架构、功能、接口、依赖关系等，生成详细的服务模块技术文档。
@@ -344,8 +344,8 @@ graph TB
 3. 关注服务间的依赖关系和通信方式
 
 ## 输出文件命名
-\`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.SERVICE_ANALYSIS_TASK_FILE}\`
-注意：如果${WIKI_OUTPUT_DIR} 目录不存在，则创建。
+\`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.SERVICE_ANALYSIS_TASK_FILE}\`
+注意：如果${workspace}${WIKI_OUTPUT_DIR}目录不存在，则创建。
 
 ## 示例输出特征
 基于项目的服务分析特征：

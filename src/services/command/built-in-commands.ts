@@ -301,7 +301,7 @@ description: "测试驱动开发"
 	"project-wiki": {
 		name: "project-wiki",
 		description: "Perform an in-depth analysis of the project and create a comprehensive project wiki.",
-		content: PROJECT_WIKI_TEMPLATE,
+		content: PROJECT_WIKI_TEMPLATE("${workspaceFolder}/"),
 	},
 }
 

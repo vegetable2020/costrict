@@ -1,6 +1,6 @@
 import { WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const DATA_FLOW_INTEGRATION_ANALYSIS_TEMPLATE = `# 数据流和集成深度分析
+export const DATA_FLOW_INTEGRATION_ANALYSIS_TEMPLATE = (workspace: string) => `# 数据流和集成深度分析
 
 ## 使用场景
 从代码仓库中分析数据在系统中的流动路径和集成方式，生成详细的数据流文档，包括数据流转、集成模式、数据一致性等。
@@ -276,8 +276,8 @@ graph TB
 3. 关注数据一致性和安全性保证
 
 ## 输出文件命名
-\`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.DATA_FLOW_INTEGRATION_TASK_FILE}\`
-注意：如果${WIKI_OUTPUT_DIR} 目录不存在，则创建。
+\`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.DATA_FLOW_INTEGRATION_TASK_FILE}\`
+注意：如果${workspace}${WIKI_OUTPUT_DIR}目录不存在，则创建。
 
 ## 示例输出特征
 基于项目的数据流分析特征：

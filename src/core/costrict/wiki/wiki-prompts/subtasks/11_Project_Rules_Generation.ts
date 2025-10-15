@@ -1,6 +1,6 @@
 import { GENERAL_RULES_OUTPUT_DIR, WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const PROJECT_RULES_GENERATION_TEMPLATE = `# 项目开发规则文档生成任务
+export const PROJECT_RULES_GENERATION_TEMPLATE = (workspace: string) => `# 项目开发规则文档生成任务
 
 ## 任务指令
 你需要基于代码仓库分析，提取项目特有、强制、具体的开发测试规则，生成规则文档，用于提升AI Coding Agent的代码生成精准性。请严格遵循以下要求执行。

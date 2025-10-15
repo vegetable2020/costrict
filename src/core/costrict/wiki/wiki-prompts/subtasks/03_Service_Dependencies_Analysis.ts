@@ -1,6 +1,6 @@
 import { WIKI_OUTPUT_DIR, SUBTASK_OUTPUT_FILENAMES } from "./constants"
 
-export const SERVICE_DEPENDENCIES_ANALYSIS_TEMPLATE = `# 服务依赖深度分析
+export const SERVICE_DEPENDENCIES_ANALYSIS_TEMPLATE = (workspace: string) => `# 服务依赖深度分析
 
 ## 使用场景
 从代码仓库中分析服务间的依赖关系，生成详细的依赖文档，包括服务调用、数据流、接口依赖等。
@@ -259,8 +259,8 @@ graph TB
 3. 关注依赖的版本兼容性和升级策略
 
 ## 输出文件命名
-\`${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.SERVICE_DEPENDENCIES_TASK_FILE}\`
-注意：如果${WIKI_OUTPUT_DIR} 目录不存在，则创建。
+\`${workspace}${WIKI_OUTPUT_DIR}${SUBTASK_OUTPUT_FILENAMES.SERVICE_DEPENDENCIES_TASK_FILE}\`
+注意：如果${workspace}${WIKI_OUTPUT_DIR}目录不存在，则创建。
 
 ## 示例输出特征
 基于项目的依赖分析特征：
