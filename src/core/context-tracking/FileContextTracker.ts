@@ -8,6 +8,7 @@ import fs from "fs/promises"
 import { ContextProxy } from "../config/ContextProxy"
 import type { FileMetadataEntry, RecordSource, TaskMetadata } from "./FileContextTrackerTypes"
 import { ClineProvider } from "../webview/ClineProvider"
+import { logger } from "../../utils/logging"
 
 // This class is responsible for tracking file operations that may result in stale context.
 // If a user modifies a file outside of Costrict, the context may become stale and need to be updated.
@@ -39,7 +40,7 @@ export class FileContextTracker {
 	private getCwd(): string | undefined {
 		const cwd = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0)
 		if (!cwd) {
-			console.info("No workspace folder available - cannot determine current working directory")
+			logger.info("No workspace folder available - cannot determine current working directory")
 		}
 		return cwd
 	}
@@ -217,11 +218,25 @@ export class FileContextTracker {
 		this.recentlyEditedByRoo.add(filePath)
 	}
 
-	// Disposes all file watchers
+	// Disposes all file watchers and cleans up all resources
 	dispose(): void {
-		for (const watcher of this.fileWatchers.values()) {
-			watcher.dispose()
+		try {
+			// Dispose all file watchers
+			for (const [filePath, watcher] of this.fileWatchers.entries()) {
+				try {
+					watcher.dispose()
+				} catch (error) {
+					logger.error(`Error disposing file watcher for ${filePath}:`, error)
+				}
+			}
+			this.fileWatchers.clear()
+
+			// Clear all memory collections to prevent memory leaks
+			this.recentlyModifiedFiles.clear()
+			this.recentlyEditedByRoo.clear()
+			this.checkpointPossibleFiles.clear()
+		} catch (error) {
+			logger.error("Error during FileContextTracker disposal:", error)
 		}
-		this.fileWatchers.clear()
 	}
 }

@@ -167,31 +167,119 @@ export class WorkspaceEventMonitor {
 	}
 
 	/**
-	 * Destroy event monitor
+	 * 完整的资源清理方法
+	 * 清理所有监听器、缓存、定时器和单例实例
 	 */
 	public async dispose() {
-		this.log.info("[WorkspaceEventMonitor] Starting to destroy event monitor")
-		// Cancel timers
-		if (this.flushTimer) {
-			clearTimeout(this.flushTimer)
+		try {
+			this.log.info("[WorkspaceEventMonitor] 开始销毁事件监视器")
+
+			// 1. 取消定时器
+			if (this.flushTimer) {
+				clearTimeout(this.flushTimer)
+				this.flushTimer = null
+				this.log.info("[WorkspaceEventMonitor] 刷新定时器已清理")
+			}
+
+			// 2. 清理事件监听器
+			try {
+				this.disposables.forEach((disposable) => disposable.dispose())
+				this.disposables = []
+				this.log.info("[WorkspaceEventMonitor] VSCode 事件监听器已清理")
+			} catch (error) {
+				this.log.error("[WorkspaceEventMonitor] 清理 VSCode 事件监听器时出错:", error)
+			}
+
+			// 3. 清理自定义事件处理器
+			try {
+				this.addHandlers = []
+				this.modifyHandlers = []
+				this.deleteHandlers = []
+				this.renameHandlers = []
+				this.log.info("[WorkspaceEventMonitor] 自定义事件处理器已清理")
+			} catch (error) {
+				this.log.error("[WorkspaceEventMonitor] 清理自定义事件处理器时出错:", error)
+			}
+
+			// 4. 清理文档内容缓存
+			try {
+				this.documentContentCache.clear()
+				this.log.info("[WorkspaceEventMonitor] 文档内容缓存已清理")
+			} catch (error) {
+				this.log.error("[WorkspaceEventMonitor] 清理文档内容缓存时出错:", error)
+			}
+
+			// 5. 清理 CoIgnoreController
+			try {
+				if (this.ignoreController) {
+					// CoIgnoreController 可能需要自己的清理方法
+					// 这里重置引用
+					this.ignoreController = new CoIgnoreController(getWorkspacePath())
+					this.log.info("[WorkspaceEventMonitor] CoIgnoreController 已重置")
+				}
+			} catch (error) {
+				this.log.error("[WorkspaceEventMonitor] 清理 CoIgnoreController 时出错:", error)
+			}
+
+			// 6. 清理跳过集合
+			try {
+				this.skipNextDelete.clear()
+				this.skipNextCreate.clear()
+				this.log.info("[WorkspaceEventMonitor] 跳过集合已清理")
+			} catch (error) {
+				this.log.error("[WorkspaceEventMonitor] 清理跳过集合时出错:", error)
+			}
+
+			// 7. 发送剩余事件
+			try {
+				if (this.eventBuffer.size > 0) {
+					this.log.info(`[WorkspaceEventMonitor] 发送剩余的 ${this.eventBuffer.size} 个事件`)
+					await this.flushEventsSync()
+				}
+			} catch (error) {
+				this.log.error("[WorkspaceEventMonitor] 发送剩余事件时出错:", error)
+			}
+
+			// 8. 重置内部状态
+			try {
+				this.eventBuffer.clear()
+				this.workspaceCache = ""
+				this.lastFlushTime = 0
+				this.performanceMetrics = {
+					eventProcessingTime: 0,
+					lastEventCount: 0,
+					averageProcessingTime: 0,
+					systemLoad: 0,
+				}
+				this.isInitialized = false
+				this.log.info("[WorkspaceEventMonitor] 内部状态已重置")
+			} catch (error) {
+				this.log.error("[WorkspaceEventMonitor] 重置内部状态时出错:", error)
+			}
+
+			// 9. 重置单例实例（可选，用于测试环境）
+			if (process.env.NODE_ENV === "test") {
+				try {
+					;(WorkspaceEventMonitor as any).instance = null
+					this.log.info("[WorkspaceEventMonitor] 单例实例已重置（测试环境）")
+				} catch (error) {
+					this.log.error("[WorkspaceEventMonitor] 重置单例实例时出错:", error)
+				}
+			}
+
+			this.log.info("[WorkspaceEventMonitor] 事件监视器销毁完成")
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			this.log.error(`[WorkspaceEventMonitor] 销毁过程中发生错误: ${errorMessage}`)
+
+			// 即使出错也要确保基本状态被重置
 			this.flushTimer = null
+			this.disposables = []
+			this.eventBuffer.clear()
+			this.isInitialized = false
+
+			throw error
 		}
-
-		// Clean up event listeners
-		this.disposables.forEach((disposable) => disposable.dispose())
-		this.disposables = []
-
-		// Clean up document content cache
-		this.documentContentCache.clear()
-		this.log.info("[WorkspaceEventMonitor] Document content cache cleared")
-
-		// Send remaining events
-		if (this.eventBuffer.size > 0) {
-			await this.flushEventsSync()
-		}
-
-		this.isInitialized = false
-		this.log.info("[WorkspaceEventMonitor] Event monitor disposed")
 	}
 
 	/**
@@ -303,71 +391,107 @@ export class WorkspaceEventMonitor {
 	}
 
 	/**
-	 * Determine if a file should be ignored using CoIgnoreController and pattern matching
-	 * This function is used by chokidar's ignored option
+	 * 异步判断文件是否应该被忽略，使用 CoIgnoreController 和模式匹配
+	 * 添加了 ENOENT 错误处理以防止同步文件操作崩溃
 	 */
-	private shouldIgnoreFile(filePath: string, stats: fs.Stats): boolean {
+	private async shouldIgnoreFile(filePath: string, stats?: fs.Stats): Promise<boolean> {
 		if (getWorkspacePath() === filePath) return false
-		// First, use CoIgnoreController if it's initialized
-		if (this.ignoreController && this.ignoreController.coignoreContentInitialized) {
-			if (!this.ignoreController.validateAccess(filePath)) {
+
+		try {
+			// 如果没有提供 stats，尝试异步获取
+			if (!stats) {
+				try {
+					stats = await fs.promises.stat(filePath)
+				} catch (statError) {
+					// 处理 ENOENT 错误（文件不存在）
+					if ((statError as NodeJS.ErrnoException).code === "ENOENT") {
+						this.log.info(`[WorkspaceEventMonitor] 文件不存在，跳过忽略检查: ${filePath}`)
+						return true // 文件不存在，应该被忽略
+					}
+					// 其他错误也应该被忽略以防止崩溃
+					this.log.warn(
+						`[WorkspaceEventMonitor] 获取文件状态失败，默认忽略: ${filePath}, 错误: ${(statError as Error).message}`,
+					)
+					return true
+				}
+			}
+
+			// 首先使用 CoIgnoreController（如果已初始化）
+			if (this.ignoreController && this.ignoreController.coignoreContentInitialized) {
+				try {
+					if (!this.ignoreController.validateAccess(filePath)) {
+						return true
+					}
+				} catch (ignoreError) {
+					this.log.warn(
+						`[WorkspaceEventMonitor] CoIgnoreController 验证失败: ${filePath}, 错误: ${(ignoreError as Error).message}`,
+					)
+					// 继续使用其他检查方法
+				}
+			}
+
+			// 然后检查内置模式
+			if (isPathInIgnoredDirectory(filePath)) {
 				return true
 			}
-		}
 
-		// Then, check against our built-in patterns
-		if (isPathInIgnoredDirectory(filePath)) {
-			return true
-		}
+			// 基于文件状态的额外检查
+			if (stats) {
+				// 忽略匹配特定模式的目录
+				if (stats.isDirectory()) {
+					const dirName = path.basename(filePath)
+					if (["tests", "mocks", "build"].includes(dirName)) {
+						return true
+					}
+				}
 
-		// Additional checks based on file stats if available
-		// Ignore directories that match certain patterns
-		if (stats.isDirectory()) {
-			const dirName = path.basename(filePath)
-			if (["tests", "mocks", "build"].includes(dirName)) {
-				return true
+				// 忽略大文件（可选，基于大小）
+				if (stats.isFile() && stats.size > 2 * 1024 * 1024) {
+					// 大于 2MB 的文件
+					const ext = path.extname(filePath).toLowerCase()
+					const largeFileExtensions = [
+						".jpg",
+						".jpeg",
+						".png",
+						".gif",
+						".bmp",
+						".ico",
+						".svg",
+						".webp",
+						".mp3",
+						".mp4",
+						".avi",
+						".mov",
+						".wmv",
+						".flv",
+						".mkv",
+						".pdf",
+						".zip",
+						".rar",
+						".tar",
+						".gz",
+						".7z",
+						".exe",
+						".dll",
+						".so",
+						".dylib",
+						".bin",
+						".map",
+					]
+					if (largeFileExtensions.includes(ext) || BINARY_EXTENSIONS.has(ext)) {
+						return true
+					}
+				}
 			}
-		}
 
-		// Ignore large files (optional, based on size)
-		if (stats.isFile() && stats.size > 2 * 1024 * 1024) {
-			// Files larger than 10MB
-			const ext = path.extname(filePath).toLowerCase()
-			const largeFileExtensions = [
-				".jpg",
-				".jpeg",
-				".png",
-				".gif",
-				".bmp",
-				".ico",
-				".svg",
-				".webp",
-				".mp3",
-				".mp4",
-				".avi",
-				".mov",
-				".wmv",
-				".flv",
-				".mkv",
-				".pdf",
-				".zip",
-				".rar",
-				".tar",
-				".gz",
-				".7z",
-				".exe",
-				".dll",
-				".so",
-				".dylib",
-				".bin",
-				".map",
-			]
-			if (largeFileExtensions.includes(ext) || BINARY_EXTENSIONS.has(ext)) {
-				return true
-			}
+			return false
+		} catch (error) {
+			// 捕获所有未预期的错误，防止崩溃
+			this.log.error(
+				`[WorkspaceEventMonitor] shouldIgnoreFile 发生未预期错误: ${filePath}, 错误: ${(error as Error).message}`,
+			)
+			return true // 出错时默认忽略文件
 		}
-
-		return false
 	}
 
 	/**
@@ -377,7 +501,9 @@ export class WorkspaceEventMonitor {
 		const filePath = url.fsPath
 		if (url.scheme !== "file") return
 		if (!(await this.ensureServiceEnabled())) return
-		if (this.shouldIgnoreFile(filePath, fs.statSync(filePath))) return
+
+		// 对于删除事件，文件可能已经不存在，所以不传递 stats
+		if (await this.shouldIgnoreFile(filePath)) return
 
 		const eventKey = `delete:${filePath}`
 		const eventData: WorkspaceEventData = {
@@ -397,7 +523,9 @@ export class WorkspaceEventMonitor {
 		if (url.scheme !== "file") return
 		if (!(await this.ensureServiceEnabled())) return
 		const filePath = url.fsPath
-		if (this.shouldIgnoreFile(filePath, fs.statSync(filePath))) return
+
+		// 异步检查文件是否应该被忽略
+		if (await this.shouldIgnoreFile(filePath)) return
 
 		// 1. Re-read disk content
 		let buf: Buffer
@@ -443,7 +571,9 @@ export class WorkspaceEventMonitor {
 		if (oldUri.scheme !== "file" || newUri.scheme !== "file") return
 		if (!(await this.ensureServiceEnabled())) return
 		const filePath = newUri.fsPath
-		if (this.shouldIgnoreFile(filePath, fs.statSync(filePath))) return
+
+		// 异步检查文件是否应该被忽略
+		if (await this.shouldIgnoreFile(filePath)) return
 
 		const eventKey = `rename:${oldUri.fsPath}:${filePath}`
 		const eventData: WorkspaceEventData = {
@@ -463,9 +593,9 @@ export class WorkspaceEventMonitor {
 		if (!(await this.ensureServiceEnabled())) return
 
 		// Handle added workspaces
-		event.added.forEach((folder) => {
+		for (const folder of event.added) {
 			const filePath = folder.uri.fsPath
-			if (this.shouldIgnoreFile(filePath, fs.statSync(filePath))) return
+			if (await this.shouldIgnoreFile(filePath)) continue
 			const eventKey = `workspace:open:${filePath}`
 			const eventData: WorkspaceEventData = {
 				eventType: "open_workspace",
@@ -473,12 +603,12 @@ export class WorkspaceEventMonitor {
 				sourcePath: "",
 			}
 			this.addEvent(eventKey, eventData)
-		})
+		}
 
 		// Handle removed workspaces
-		event.removed.forEach((folder) => {
+		for (const folder of event.removed) {
 			const filePath = folder.uri.fsPath
-			if (this.shouldIgnoreFile(filePath, fs.statSync(filePath))) return
+			if (await this.shouldIgnoreFile(filePath)) continue
 			const eventKey = `workspace:close:${filePath}`
 			const eventData: WorkspaceEventData = {
 				eventType: "close_workspace",
@@ -486,7 +616,7 @@ export class WorkspaceEventMonitor {
 				sourcePath: "",
 			}
 			this.addEvent(eventKey, eventData)
-		})
+		}
 	}
 
 	/**
@@ -496,7 +626,9 @@ export class WorkspaceEventMonitor {
 		if (url.scheme !== "file") return
 		if (!(await this.ensureServiceEnabled())) return
 		const filePath = url.fsPath
-		if (this.shouldIgnoreFile(filePath, fs.statSync(filePath))) return
+
+		// 异步检查文件是否应该被忽略
+		if (await this.shouldIgnoreFile(filePath)) return
 
 		const eventKey = `create:${filePath}`
 		const eventData: WorkspaceEventData = {
@@ -520,9 +652,9 @@ export class WorkspaceEventMonitor {
 			return
 		}
 
-		workspaceFolders.forEach((folder) => {
+		for (const folder of workspaceFolders) {
 			const filePath = folder.uri.fsPath
-			if (this.shouldIgnoreFile(filePath, fs.statSync(filePath))) return
+			if (await this.shouldIgnoreFile(filePath)) continue
 			const eventKey = `workspace:initial:${filePath}`
 			const eventData: WorkspaceEventData = {
 				eventType: "open_workspace",
@@ -530,7 +662,7 @@ export class WorkspaceEventMonitor {
 				sourcePath: "",
 			}
 			this.addEvent(eventKey, eventData)
-		})
+		}
 	}
 
 	/**

@@ -15,6 +15,7 @@ import { getApiMetrics } from "../../shared/getApiMetrics"
 import { DIFF_VIEW_URI_SCHEME } from "../../integrations/editor/DiffViewProvider"
 
 import { CheckpointServiceOptions, RepoPerTaskCheckpointService } from "../../services/checkpoints"
+import { checkpointServiceManager } from "../../services/checkpoints/CheckpointServiceManager"
 import { CospecMetadataManager } from "../costrict/workflow/CospecMetadataManager"
 import * as path from "path"
 import * as fs from "fs/promises"
@@ -31,7 +32,7 @@ async function updateCospecMetadataForCheckpoint(
 	if (!isCoworkflowDocument(editFilePath)) {
 		return
 	}
-	const fileName =  path.basename(editFilePath)
+	const fileName = path.basename(editFilePath)
 	const cospecDir = path.join(workspaceDir, path.dirname(editFilePath))
 	const fileAbsPath = path.join(workspaceDir, editFilePath)
 	const metadata = await CospecMetadataManager.getMetadataOrDefault(cospecDir)
@@ -40,7 +41,7 @@ async function updateCospecMetadataForCheckpoint(
 			lastTaskId: taskId,
 			lastCheckpointId: checkpointId,
 			content: await fs.readFile(fileAbsPath, "utf-8"),
-		}
+		},
 	})
 
 	try {
@@ -122,6 +123,10 @@ export async function getCheckpointService(
 		const service = RepoPerTaskCheckpointService.create(options)
 		task.checkpointServiceInitializing = true
 		await checkGitInstallation(task, service, log, provider)
+
+		// 注册服务到管理器
+		checkpointServiceManager.registerService(task.taskId, service)
+
 		task.checkpointService = service
 		return service
 	} catch (err) {
@@ -371,14 +376,11 @@ export async function updateCospecMetadata(task: Task, editFilePath?: string) {
 				workspaceDir,
 				editFilePath,
 				task.taskId,
-				checkpointId
+				checkpointId,
 				// checkpointInfo?.checkpoint?.to as string,
 			)
 		}
 	} catch (error) {
-		console.error(
-			"[Task#updateCospecMetadataForCheckpoint] caught unexpected error, disabling checkpoints",
-			error,
-		)
+		console.error("[Task#updateCospecMetadataForCheckpoint] caught unexpected error, disabling checkpoints", error)
 	}
 }

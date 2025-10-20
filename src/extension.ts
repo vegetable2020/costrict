@@ -33,6 +33,7 @@ import { migrateSettings } from "./utils/migrateSettings"
 import { autoImportSettings } from "./utils/autoImportSettings"
 import { API } from "./extension/api"
 import { ZgsmAuthConfig } from "./core/costrict/auth/index"
+import { checkpointServiceManager } from "./services/checkpoints/CheckpointServiceManager"
 
 import {
 	handleUri,
@@ -361,41 +362,80 @@ export async function activate(context: vscode.ExtensionContext) {
 
 // This method is called when your extension is deactivated.
 export async function deactivate() {
-	await ZgsmCore.deactivate()
-	outputChannel.appendLine(`${Package.name} extension deactivated`)
+	try {
+		outputChannel.appendLine(`${Package.name} extension deactivation started`)
 
-	// if (cloudService && CloudService.hasInstance()) {
-	// 	try {
-	// 		if (authStateChangedHandler) {
-	// 			CloudService.instance.off("auth-state-changed", authStateChangedHandler)
-	// 		}
+		// 1. 清理 ZgsmCore（包含 WorkspaceEventMonitor）
+		await ZgsmCore.deactivate()
+		outputChannel.appendLine("ZgsmCore deactivated")
 
-	// 		if (settingsUpdatedHandler) {
-	// 			CloudService.instance.off("settings-updated", settingsUpdatedHandler)
-	// 		}
+		// 2. 清理所有 checkpoint 服务
+		try {
+			const stats = checkpointServiceManager.getStats()
+			outputChannel.appendLine(`开始清理 ${stats.activeCount} 个活跃的 checkpoint 服务`)
 
-	// 		if (userInfoHandler) {
-	// 			CloudService.instance.off("user-info", userInfoHandler as any)
-	// 		}
+			await checkpointServiceManager.disposeAll()
+			outputChannel.appendLine("所有 checkpoint 服务清理完成")
+		} catch (error) {
+			outputChannel.appendLine(
+				`清理 checkpoint 服务时出错: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		}
 
-	// 		outputChannel.appendLine("CloudService event handlers cleaned up")
-	// 	} catch (error) {
-	// 		outputChannel.appendLine(
-	// 			`Failed to clean up CloudService event handlers: ${error instanceof Error ? error.message : String(error)}`,
-	// 		)
-	// 	}
-	// }
+		// if (cloudService && CloudService.hasInstance()) {
+		// 	try {
+		// 		if (authStateChangedHandler) {
+		// 			CloudService.instance.off("auth-state-changed", authStateChangedHandler)
+		// 		}
 
-	// const bridge = BridgeOrchestrator.getInstance()
+		// 		if (settingsUpdatedHandler) {
+		// 			CloudService.instance.off("settings-updated", settingsUpdatedHandler)
+		// 		}
 
-	// if (bridge) {
-	// 	await bridge.disconnect()
-	// }
+		// 		if (userInfoHandler) {
+		// 			CloudService.instance.off("user-info", userInfoHandler as any)
+		// 		}
 
-	// Deactivate coworkflow integration
-	deactivateCoworkflowIntegration()
+		// 		outputChannel.appendLine("CloudService event handlers cleaned up")
+		// 	} catch (error) {
+		// 		outputChannel.appendLine(
+		// 			`Failed to clean up CloudService event handlers: ${error instanceof Error ? error.message : String(error)}`,
+		// 		)
+		// 	}
+		// }
 
-	await McpServerManager.cleanup(extensionContext)
-	TelemetryService.instance.shutdown()
-	TerminalRegistry.cleanup()
+		// const bridge = BridgeOrchestrator.getInstance()
+
+		// if (bridge) {
+		// 	await bridge.disconnect()
+		// }
+
+		// 3. 清理 coworkflow 集成
+		deactivateCoworkflowIntegration()
+		outputChannel.appendLine("Coworkflow integration deactivated")
+
+		// 4. 清理 MCP 服务器管理器
+		await McpServerManager.cleanup(extensionContext)
+		outputChannel.appendLine("MCP server manager cleaned up")
+
+		// 5. 关闭遥测服务
+		TelemetryService.instance.shutdown()
+		outputChannel.appendLine("Telemetry service shutdown")
+
+		// 6. 清理终端注册表
+		TerminalRegistry.cleanup()
+		outputChannel.appendLine("Terminal registry cleaned up")
+
+		outputChannel.appendLine(`${Package.name} extension deactivated successfully`)
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error)
+		outputChannel.appendLine(`Error during extension deactivation: ${errorMessage}`)
+		// 即使出错也要确保基本清理完成
+		try {
+			TelemetryService.instance.shutdown()
+			TerminalRegistry.cleanup()
+		} catch {
+			// 忽略清理过程中的错误
+		}
+	}
 }

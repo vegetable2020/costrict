@@ -18,6 +18,7 @@ export class CoworkflowFileWatcher implements ICoworkflowFileWatcher {
 	private disposables: vscode.Disposable[] = []
 	private fileWatchers: Map<string, vscode.FileSystemWatcher> = new Map()
 	private fileContexts: Map<string, CoworkflowFileContext> = new Map()
+	private debounceTimers: Map<string, NodeJS.Timeout> = new Map()
 	private config: CoworkflowWatcherConfig
 	private onFileChangedEmitter = new vscode.EventEmitter<CoworkflowFileChangeEvent>()
 	private errorHandler: CoworkflowErrorHandler
@@ -58,6 +59,7 @@ export class CoworkflowFileWatcher implements ICoworkflowFileWatcher {
 		try {
 			this.onFileChangedEmitter.dispose()
 			this.clearAllWatchers()
+			this.clearAllDebounceTimers()
 			this.disposables.forEach((d) => d.dispose())
 			this.disposables = []
 		} catch (error) {
@@ -180,6 +182,37 @@ export class CoworkflowFileWatcher implements ICoworkflowFileWatcher {
 		}
 	}
 
+	/**
+	 * Clear all debounce timers to prevent timer leaks
+	 */
+	private clearAllDebounceTimers(): void {
+		try {
+			this.debounceTimers.forEach((timer) => {
+				try {
+					clearTimeout(timer)
+				} catch (error) {
+					this.errorHandler.logError(
+						this.errorHandler.createError(
+							"file_system_error",
+							"warning",
+							"Error clearing debounce timer",
+							error as Error,
+						),
+					)
+				}
+			})
+			this.debounceTimers.clear()
+		} catch (error) {
+			const coworkflowError = this.errorHandler.createError(
+				"file_system_error",
+				"error",
+				"Error clearing debounce timers",
+				error as Error,
+			)
+			this.errorHandler.handleError(coworkflowError)
+		}
+	}
+
 	private setupWatchers(): void {
 		const coworkflowPath = this.getCoworkflowPath()
 		if (!coworkflowPath) {
@@ -254,15 +287,18 @@ export class CoworkflowFileWatcher implements ICoworkflowFileWatcher {
 					const watcher = vscode.workspace.createFileSystemWatcher(globPattern)
 
 					// Handle file changes with debouncing
-					let debounceTimer: NodeJS.Timeout | undefined
 					const handleChange = (uri: vscode.Uri) => {
 						try {
-							if (debounceTimer) {
-								clearTimeout(debounceTimer)
+							const uriKey = uri.toString()
+							const existingTimer = this.debounceTimers.get(uriKey)
+							if (existingTimer) {
+								clearTimeout(existingTimer)
 							}
-							debounceTimer = setTimeout(() => {
+							const newTimer = setTimeout(() => {
 								this.onFileChanged(uri)
+								this.debounceTimers.delete(uriKey)
 							}, this.config.debounceDelay)
+							this.debounceTimers.set(uriKey, newTimer)
 						} catch (error) {
 							const coworkflowError = this.errorHandler.createError(
 								"file_system_error",

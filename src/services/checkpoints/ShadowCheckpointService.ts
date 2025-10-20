@@ -145,18 +145,68 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 	// shared with the main repo - and won't conflict with user's
 	// .gitignore.
 	protected async writeExcludeFile() {
-		await fs.mkdir(path.join(this.dotGitDir, "info"), { recursive: true })
-		const patterns = await getExcludePatterns(this.workspaceDir)
-		await fs.writeFile(path.join(this.dotGitDir, "info", "exclude"), patterns.join("\n"))
+		const excludeFilePath = path.join(this.dotGitDir, "info", "exclude")
+
+		try {
+			// 确保目录存在
+			await fs.mkdir(path.join(this.dotGitDir, "info"), { recursive: true })
+
+			// 获取排除模式
+			const patterns = await getExcludePatterns(this.workspaceDir)
+			const content = patterns.join("\n")
+
+			// 使用原子写入操作防止文件损坏
+			const tempFilePath = `${excludeFilePath}.tmp`
+
+			try {
+				await fs.writeFile(tempFilePath, content, { encoding: "utf8" })
+				await fs.rename(tempFilePath, excludeFilePath)
+				this.log(`[${this.constructor.name}#writeExcludeFile] 成功写入排除文件: ${excludeFilePath}`)
+			} catch (writeError) {
+				// 清理临时文件
+				try {
+					await fs.unlink(tempFilePath)
+				} catch {
+					// 忽略清理错误
+				}
+				throw writeError
+			}
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			this.log(`[${this.constructor.name}#writeExcludeFile] 写入排除文件失败: ${errorMessage}`)
+			throw new Error(`Failed to write exclude file: ${errorMessage}`)
+		}
 	}
 
 	private async stageAll(git: SimpleGit) {
-		try {
-			await git.add(".")
-		} catch (error) {
-			this.log(
-				`[${this.constructor.name}#stageAll] failed to add files to git: ${error instanceof Error ? error.message : String(error)}`,
-			)
+		const maxRetries = 3
+		const retryDelay = 1000 // 1秒
+
+		for (let attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				await git.add(".")
+				this.log(`[${this.constructor.name}#stageAll] 成功添加文件到 git (尝试 ${attempt}/${maxRetries})`)
+				return
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error)
+				this.log(
+					`[${this.constructor.name}#stageAll] 添加文件到 git 失败 (尝试 ${attempt}/${maxRetries}): ${errorMessage}`,
+				)
+
+				// 检查是否是文件锁定错误
+				if (errorMessage.includes("index.lock") || errorMessage.includes("locked")) {
+					if (attempt < maxRetries) {
+						this.log(`[${this.constructor.name}#stageAll] 检测到文件锁定，等待 ${retryDelay}ms 后重试`)
+						await new Promise((resolve) => setTimeout(resolve, retryDelay))
+						continue
+					}
+				}
+
+				// 最后一次尝试失败或非锁定错误
+				if (attempt === maxRetries) {
+					throw new Error(`Failed to stage files after ${maxRetries} attempts: ${errorMessage}`)
+				}
+			}
 		}
 	}
 
@@ -275,32 +325,79 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 	}
 
 	public async restoreCheckpoint(commitHash: string) {
-		try {
-			this.log(`[${this.constructor.name}#restoreCheckpoint] starting checkpoint restore`)
+		const maxRetries = 3
+		const retryDelay = 1000 // 1秒
 
-			if (!this.git) {
-				throw new Error("Shadow git repo not initialized")
+		for (let attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				this.log(`[${this.constructor.name}#restoreCheckpoint] 开始恢复检查点 (尝试 ${attempt}/${maxRetries})`)
+
+				if (!this.git) {
+					throw new Error("Shadow git repo not initialized")
+				}
+
+				const start = Date.now()
+
+				// 使用重试机制处理可能的文件锁定问题
+				try {
+					await this.git.clean("f", ["-d", "-f"])
+				} catch (cleanError) {
+					const errorMessage = cleanError instanceof Error ? cleanError.message : String(cleanError)
+					if (errorMessage.includes("index.lock") || errorMessage.includes("locked")) {
+						if (attempt < maxRetries) {
+							this.log(`[${this.constructor.name}#restoreCheckpoint] git clean 遇到锁定，等待重试`)
+							await new Promise((resolve) => setTimeout(resolve, retryDelay))
+							continue
+						}
+					}
+					throw cleanError
+				}
+
+				try {
+					await this.git.reset(["--hard", commitHash])
+				} catch (resetError) {
+					const errorMessage = resetError instanceof Error ? resetError.message : String(resetError)
+					if (errorMessage.includes("index.lock") || errorMessage.includes("locked")) {
+						if (attempt < maxRetries) {
+							this.log(`[${this.constructor.name}#restoreCheckpoint] git reset 遇到锁定，等待重试`)
+							await new Promise((resolve) => setTimeout(resolve, retryDelay))
+							continue
+						}
+					}
+					throw resetError
+				}
+
+				// Remove all checkpoints after the specified commitHash.
+				const checkpointIndex = this._checkpoints.indexOf(commitHash)
+
+				if (checkpointIndex !== -1) {
+					this._checkpoints = this._checkpoints.slice(0, checkpointIndex + 1)
+				}
+
+				const duration = Date.now() - start
+				this.emit("restore", { type: "restore", commitHash, duration })
+				this.log(
+					`[${this.constructor.name}#restoreCheckpoint] 成功恢复检查点 ${commitHash}，耗时 ${duration}ms (尝试 ${attempt}/${maxRetries})`,
+				)
+				return // 成功完成，退出重试循环
+			} catch (e) {
+				const error = e instanceof Error ? e : new Error(String(e))
+				const errorMessage = error.message
+
+				this.log(
+					`[${this.constructor.name}#restoreCheckpoint] 恢复检查点失败 (尝试 ${attempt}/${maxRetries}): ${errorMessage}`,
+				)
+
+				// 如果是最后一次尝试，抛出错误
+				if (attempt === maxRetries) {
+					this.log(`[${this.constructor.name}#restoreCheckpoint] 所有重试尝试均失败，放弃恢复操作`)
+					this.emit("error", { type: "error", error })
+					throw new Error(`Failed to restore checkpoint after ${maxRetries} attempts: ${errorMessage}`)
+				}
+
+				// 等待后重试
+				await new Promise((resolve) => setTimeout(resolve, retryDelay))
 			}
-
-			const start = Date.now()
-			await this.git.clean("f", ["-d", "-f"])
-			await this.git.reset(["--hard", commitHash])
-
-			// Remove all checkpoints after the specified commitHash.
-			const checkpointIndex = this._checkpoints.indexOf(commitHash)
-
-			if (checkpointIndex !== -1) {
-				this._checkpoints = this._checkpoints.slice(0, checkpointIndex + 1)
-			}
-
-			const duration = Date.now() - start
-			this.emit("restore", { type: "restore", commitHash, duration })
-			this.log(`[${this.constructor.name}#restoreCheckpoint] restored checkpoint ${commitHash} in ${duration}ms`)
-		} catch (e) {
-			const error = e instanceof Error ? e : new Error(String(e))
-			this.log(`[${this.constructor.name}#restoreCheckpoint] failed to restore checkpoint: ${error.message}`)
-			this.emit("error", { type: "error", error })
-			throw error
 		}
 	}
 
@@ -311,31 +408,113 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 
 		const result = []
 
-		if (!from) {
-			from = (await this.git.raw(["rev-list", "--max-parents=0", "HEAD"])).trim()
+		try {
+			if (!from) {
+				from = (await this.git.raw(["rev-list", "--max-parents=0", "HEAD"])).trim()
+			}
+
+			// Stage all changes so that untracked files appear in diff summary.
+			await this.stageAll(this.git)
+
+			this.log(`[${this.constructor.name}#getDiff] diffing ${to ? `${from}..${to}` : `${from}..HEAD`}`)
+			const { files } = to ? await this.git.diffSummary([`${from}..${to}`]) : await this.git.diffSummary([from])
+
+			const cwdPath = (await this.getShadowGitConfigWorktree(this.git)) || this.workspaceDir || ""
+
+			for (const file of files) {
+				const relPath = file.file
+				const absPath = path.join(cwdPath, relPath)
+
+				try {
+					const before = await this.git.show([`${from}:${relPath}`]).catch(() => "")
+
+					let after = ""
+					if (to) {
+						after = await this.git.show([`${to}:${relPath}`]).catch(() => "")
+					} else {
+						// 使用 try-finally 模式确保文件句柄正确关闭
+						try {
+							after = await fs.readFile(absPath, "utf8")
+						} catch (readError) {
+							// 文件可能已被删除或无法访问
+							const errorMessage = readError instanceof Error ? readError.message : String(readError)
+							this.log(`[${this.constructor.name}#getDiff] 无法读取文件 ${absPath}: ${errorMessage}`)
+							after = ""
+						}
+					}
+
+					result.push({ paths: { relative: relPath, absolute: absPath }, content: { before, after } })
+				} catch (fileError) {
+					const errorMessage = fileError instanceof Error ? fileError.message : String(fileError)
+					this.log(`[${this.constructor.name}#getDiff] 处理文件 ${relPath} 时出错: ${errorMessage}`)
+					// 继续处理其他文件，不让单个文件错误影响整个 diff 操作
+					continue
+				}
+			}
+
+			return result
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			this.log(`[${this.constructor.name}#getDiff] getDiff 操作失败: ${errorMessage}`)
+			throw new Error(`Failed to get diff: ${errorMessage}`)
 		}
+	}
 
-		// Stage all changes so that untracked files appear in diff summary.
-		await this.stageAll(this.git)
+	/**
+	 * 完整的资源清理方法
+	 * 清理 SimpleGit 实例、EventEmitter 监听器、文件句柄和内部状态
+	 */
+	public async dispose(): Promise<void> {
+		try {
+			this.log(`[${this.constructor.name}#dispose] 开始清理 ShadowCheckpointService 资源`)
 
-		this.log(`[${this.constructor.name}#getDiff] diffing ${to ? `${from}..${to}` : `${from}..HEAD`}`)
-		const { files } = to ? await this.git.diffSummary([`${from}..${to}`]) : await this.git.diffSummary([from])
+			// 1. 清理 SimpleGit 实例
+			if (this.git) {
+				try {
+					// 确保没有正在进行的 Git 操作
+					// SimpleGit 内部会处理进程清理，但我们需要确保引用被清除
+					this.git = undefined
+					this.log(`[${this.constructor.name}#dispose] SimpleGit 实例已清理`)
+				} catch (error) {
+					this.log(
+						`[${this.constructor.name}#dispose] 清理 SimpleGit 实例时出错: ${error instanceof Error ? error.message : String(error)}`,
+					)
+				}
+			}
 
-		const cwdPath = (await this.getShadowGitConfigWorktree(this.git)) || this.workspaceDir || ""
+			// 2. 移除所有 EventEmitter 监听器
+			try {
+				this.removeAllListeners()
+				this.log(`[${this.constructor.name}#dispose] EventEmitter 监听器已清理`)
+			} catch (error) {
+				this.log(
+					`[${this.constructor.name}#dispose] 清理 EventEmitter 监听器时出错: ${error instanceof Error ? error.message : String(error)}`,
+				)
+			}
 
-		for (const file of files) {
-			const relPath = file.file
-			const absPath = path.join(cwdPath, relPath)
-			const before = await this.git.show([`${from}:${relPath}`]).catch(() => "")
+			// 3. 重置内部状态
+			try {
+				this._checkpoints = []
+				this._baseHash = undefined
+				this.shadowGitConfigWorktree = undefined
+				this.log(`[${this.constructor.name}#dispose] 内部状态已重置`)
+			} catch (error) {
+				this.log(
+					`[${this.constructor.name}#dispose] 重置内部状态时出错: ${error instanceof Error ? error.message : String(error)}`,
+				)
+			}
 
-			const after = to
-				? await this.git.show([`${to}:${relPath}`]).catch(() => "")
-				: await fs.readFile(absPath, "utf8").catch(() => "")
-
-			result.push({ paths: { relative: relPath, absolute: absPath }, content: { before, after } })
+			this.log(`[${this.constructor.name}#dispose] ShadowCheckpointService 资源清理完成`)
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			this.log(`[${this.constructor.name}#dispose] 资源清理过程中发生错误: ${errorMessage}`)
+			// 即使清理过程中出错，也要确保基本状态被重置
+			this.git = undefined
+			this._checkpoints = []
+			this._baseHash = undefined
+			this.shadowGitConfigWorktree = undefined
+			throw error
 		}
-
-		return result
 	}
 
 	/**
