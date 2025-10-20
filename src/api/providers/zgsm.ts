@@ -519,7 +519,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 			model: metadata?.modelId || model.id,
 			messages: messages,
 			temperature: 0.9,
-			max_tokens: metadata?.maxLength ?? 200,
+			max_tokens: metadata?.maxLength ?? 300,
 		}
 
 		Object.assign(requestOptions, {
@@ -685,10 +685,14 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		modelInfo: ModelInfo,
 	): void {
 		// Only add max_completion_tokens if includeMaxTokens is true
-		if (this.options.includeMaxTokens === true) {
+		if (
+			(this.options.includeMaxTokens === true && this.options.useZgsmCustomConfig) ||
+			!this.options.useZgsmCustomConfig
+		) {
 			// Use user-configured modelMaxTokens if available, otherwise fall back to model's default maxTokens
 			// Using max_completion_tokens as max_tokens is deprecated
-			requestOptions.max_completion_tokens = this.options.modelMaxTokens || modelInfo.maxTokens
+			requestOptions[modelInfo.supportsMaxTokens ? "max_tokens" : "max_completion_tokens"] =
+				this.options.modelMaxTokens || modelInfo.maxTokens
 		}
 	}
 
