@@ -939,12 +939,12 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			// Find the last unanswered follow-up message using findLastIndex
 			const lastFollowUpIndex = findLastIndex(
 				this.clineMessages,
-				(msg) => msg.type === "ask" && msg.ask === "followup" && !msg.isAnswered,
+				(msg) => msg.type === "ask" && msg.ask === "followup",
 			)
 
 			if (lastFollowUpIndex !== -1) {
 				// Mark this follow-up as answered
-				this.clineMessages[lastFollowUpIndex].isAnswered = true
+				this.clineMessages[lastFollowUpIndex].isLastFollowUp = true
 				// Save the updated messages
 				this.saveClineMessages().catch((error) => {
 					console.error("Failed to save answered follow-up state:", error)

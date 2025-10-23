@@ -1,4 +1,4 @@
-import { useCallback /* useEffect, useState */ } from "react"
+import { useCallback, useState /* useEffect */ } from "react"
 import { ClipboardCopy } from "lucide-react"
 
 import { Button, StandardTooltip } from "@/components/ui"
@@ -16,7 +16,8 @@ interface FollowUpSuggestProps {
 	ts: number
 	countdown?: number
 	onCancelAutoApproval?: () => void
-	isAnswered?: boolean
+	// isAnswered?: boolean
+	isLastFollowUp?: boolean
 }
 
 export const FollowUpSuggest = ({
@@ -25,11 +26,12 @@ export const FollowUpSuggest = ({
 	ts = 1,
 	countdown = 0,
 	onCancelAutoApproval,
-	isAnswered = false,
+	isLastFollowUp = true,
+	// isAnswered = false,
 }: FollowUpSuggestProps) => {
 	// const { autoApprovalEnabled, alwaysAllowFollowupQuestions, followupAutoApproveTimeoutMs } = useExtensionState()
 	// const [countdown, setCountdown] = useState<number | null>(null)
-	// const [suggestionSelected, setSuggestionSelected] = useState(false)
+	const [suggestionSelected, setSuggestionSelected] = useState(false)
 	const { t } = useAppTranslation()
 
 	// // Start countdown timer when auto-approval is enabled for follow-up questions
@@ -86,7 +88,7 @@ export const FollowUpSuggest = ({
 		(suggestion: SuggestionItem, event: React.MouseEvent) => {
 			// Mark a suggestion as selected if it's not a shift-click (which just copies to input)
 			if (!event.shiftKey) {
-				// setSuggestionSelected(true)
+				setSuggestionSelected(true)
 				// Also notify parent component to cancel auto-approval timeout
 				// This prevents race conditions between visual countdown and actual timeout
 				onCancelAutoApproval?.()
@@ -119,7 +121,7 @@ export const FollowUpSuggest = ({
 							onClick={(event) => handleSuggestionClick(suggestion, event)}
 							aria-label={suggestion.answer}>
 							{suggestion.answer}
-							{isFirstSuggestion && countdown > 0 && !isAnswered && (
+							{isFirstSuggestion && countdown > 0 && !suggestionSelected && isLastFollowUp && (
 								<span
 									className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-vscode-badge-background text-vscode-badge-foreground"
 									title={t("chat:followUpSuggest.autoSelectCountdown", { count: countdown })}>
@@ -139,7 +141,7 @@ export const FollowUpSuggest = ({
 								onClick={(e) => {
 									e.stopPropagation()
 									// Cancel the auto-approve timer when edit button is clicked
-									// setSuggestionSelected(true)
+									setSuggestionSelected(true)
 									onCancelAutoApproval?.()
 									// Simulate shift-click by directly calling the handler with shiftKey=true.
 									onSuggestionClick?.(suggestion, { ...e, shiftKey: true })

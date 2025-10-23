@@ -82,7 +82,8 @@ interface ChatRowProps {
 	onSuggestionClick?: (suggestion: SuggestionItem, event?: React.MouseEvent) => void
 	onBatchFileResponse?: (response: { [key: string]: boolean }) => void
 	onFollowUpUnmount?: () => void
-	isFollowUpAnswered?: boolean
+	// isFollowUpAnswered?: boolean
+	isLastFollowUp?: boolean
 	countdown?: number
 	editable?: boolean
 	shouldHighlight?: boolean
@@ -151,7 +152,8 @@ export const ChatRowContent = ({
 	onSuggestionClick,
 	onFollowUpUnmount,
 	onBatchFileResponse,
-	isFollowUpAnswered,
+	// isFollowUpAnswered,
+	isLastFollowUp,
 	countdown,
 	editable,
 	searchQuery,
@@ -1675,7 +1677,8 @@ export const ChatRowContent = ({
 									ts={message?.ts}
 									onCancelAutoApproval={onFollowUpUnmount}
 									countdown={countdown}
-									isAnswered={isFollowUpAnswered}
+									isLastFollowUp={isLastFollowUp}
+									// isAnswered={isFollowUpAnswered}
 								/>
 							</div>
 						</>

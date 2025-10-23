@@ -204,7 +204,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	)
 	const autoApproveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const userRespondedRef = useRef<boolean>(false)
-	const [currentFollowUpTs, setCurrentFollowUpTs] = useState<number | null>(null)
+	// const [currentFollowUpTs, setCurrentFollowUpTs] = useState<number | null>(null)
 
 	const clineAskRef = useRef(clineAsk)
 	useEffect(() => {
@@ -467,7 +467,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		// Reset UI states
 		setExpandedRows({})
 		everVisibleMessagesTsRef.current.clear() // Clear for new task
-		setCurrentFollowUpTs(null) // Clear follow-up answered state for new task
+		// setCurrentFollowUpTs(null) // Clear follow-up answered state for new task
 		setIsCondensing(false) // Reset condensing state when switching tasks
 		// Note: sendingDisabled is not reset here as it's managed by message effects
 
@@ -557,12 +557,12 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		return false
 	}, [modifiedMessages, clineAsk, enableButtons, primaryButtonText])
 
-	const markFollowUpAsAnswered = useCallback(() => {
-		const lastFollowUpMessage = messagesRef.current.findLast((msg: ClineMessage) => msg.ask === "followup")
-		if (lastFollowUpMessage) {
-			setCurrentFollowUpTs(lastFollowUpMessage.ts)
-		}
-	}, [])
+	// const markFollowUpAsAnswered = useCallback(() => {
+	// 	const lastFollowUpMessage = messagesRef.current.findLast((msg: ClineMessage) => msg.ask === "followup")
+	// 	if (lastFollowUpMessage) {
+	// 		// setCurrentFollowUpTs(lastFollowUpMessage.ts)
+	// 	}
+	// }, [])
 
 	const handleChatReset = useCallback(() => {
 		// Clear any pending auto-approval timeout
@@ -615,9 +615,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				if (messagesRef.current.length === 0) {
 					vscode.postMessage({ type: "newTask", text, images, values: { chatType } })
 				} else if (clineAskRef.current) {
-					if (clineAskRef.current === "followup") {
-						markFollowUpAsAnswered()
-					}
+					// if (clineAskRef.current === "followup") {
+					// 	// markFollowUpAsAnswered()
+					// }
 
 					// Use clineAskRef.current
 					switch (
@@ -651,7 +651,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				handleChatReset()
 			}
 		},
-		[handleChatReset, markFollowUpAsAnswered, sendingDisabled], // messagesRef and clineAskRef are stable
+		[handleChatReset, sendingDisabled], // messagesRef and clineAskRef are stable
 	)
 
 	const handleSetChatBoxMessage = useCallback(
@@ -1500,10 +1500,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				userRespondedRef.current = true
 			}
 
-			// Mark the current follow-up question as answered when a suggestion is clicked
-			if (clineAsk === "followup" && !event?.shiftKey) {
-				markFollowUpAsAnswered()
-			}
+			// // Mark the current follow-up question as answered when a suggestion is clicked
+			// if (clineAsk === "followup" && !event?.shiftKey) {
+			// 	markFollowUpAsAnswered()
+			// }
 
 			// Check if we need to switch modes
 			if (suggestion.mode) {
@@ -1529,7 +1529,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				setInputValue(preservedInput)
 			}
 		},
-		[handleSendMessage, setInputValue, switchToMode, alwaysAllowModeSwitch, clineAsk, markFollowUpAsAnswered],
+		[handleSendMessage, setInputValue, switchToMode, alwaysAllowModeSwitch],
 	)
 
 	const handleBatchFileResponse = useCallback((response: { [key: string]: boolean }) => {
@@ -1591,7 +1591,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					onBatchFileResponse={handleBatchFileResponse}
 					onFollowUpUnmount={handleFollowUpUnmount}
 					countdown={countdown}
-					isFollowUpAnswered={messageOrGroup.isAnswered === true || messageOrGroup.ts === currentFollowUpTs}
+					isLastFollowUp={messageOrGroup.isLastFollowUp}
+					// isFollowUpAnswered={messageOrGroup.isAnswered === true || messageOrGroup.ts === currentFollowUpTs}
 					editable={
 						messageOrGroup.type === "ask" &&
 						messageOrGroup.ask === "tool" &&
@@ -1627,7 +1628,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			handleBatchFileResponse,
 			handleFollowUpUnmount,
 			countdown,
-			currentFollowUpTs,
 			shouldHighlight,
 			searchResults,
 			showSearch,

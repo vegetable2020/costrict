@@ -90,6 +90,7 @@ describe("FollowUpSuggest", () => {
 				ts={123}
 				onCancelAutoApproval={mockOnCancelAutoApproval}
 				countdown={3}
+				isLastFollowUp={true}
 			/>,
 			defaultTestState,
 		)
@@ -106,7 +107,7 @@ describe("FollowUpSuggest", () => {
 				ts={123}
 				onCancelAutoApproval={mockOnCancelAutoApproval}
 				countdown={3}
-				isAnswered={true}
+				isLastFollowUp={false}
 			/>,
 			defaultTestState,
 		)
@@ -158,7 +159,7 @@ describe("FollowUpSuggest", () => {
 				ts={123}
 				onCancelAutoApproval={mockOnCancelAutoApproval}
 				countdown={3}
-				isAnswered={true}
+				isLastFollowUp={false}
 			/>,
 			defaultTestState,
 		)
@@ -175,6 +176,7 @@ describe("FollowUpSuggest", () => {
 				ts={123}
 				onCancelAutoApproval={mockOnCancelAutoApproval}
 				countdown={5}
+				isLastFollowUp={true}
 			/>,
 			defaultTestState,
 		)
@@ -236,7 +238,7 @@ describe("FollowUpSuggest", () => {
 				ts={123}
 				onCancelAutoApproval={mockOnCancelAutoApproval}
 				countdown={3}
-				isAnswered={false}
+				isLastFollowUp={true}
 			/>,
 			defaultTestState,
 		)
@@ -254,7 +256,7 @@ describe("FollowUpSuggest", () => {
 						ts={123}
 						onCancelAutoApproval={mockOnCancelAutoApproval}
 						countdown={3}
-						isAnswered={true}
+						isLastFollowUp={false}
 					/>
 				</TooltipProvider>
 			</TestExtensionStateProvider>,
@@ -272,7 +274,7 @@ describe("FollowUpSuggest", () => {
 				ts={123}
 				onCancelAutoApproval={mockOnCancelAutoApproval}
 				countdown={3}
-				isAnswered={false}
+				isLastFollowUp={true}
 			/>,
 			defaultTestState,
 		)
@@ -290,7 +292,7 @@ describe("FollowUpSuggest", () => {
 						ts={123}
 						onCancelAutoApproval={mockOnCancelAutoApproval}
 						countdown={3}
-						isAnswered={true}
+						isLastFollowUp={false}
 					/>
 				</TooltipProvider>
 			</TestExtensionStateProvider>,
@@ -308,7 +310,7 @@ describe("FollowUpSuggest", () => {
 				ts={123}
 				onCancelAutoApproval={mockOnCancelAutoApproval}
 				countdown={3}
-				isAnswered={false}
+				isLastFollowUp={true}
 			/>,
 			defaultTestState,
 		)
@@ -326,7 +328,7 @@ describe("FollowUpSuggest", () => {
 						ts={123}
 						onCancelAutoApproval={mockOnCancelAutoApproval}
 						countdown={2}
-						isAnswered={false}
+						isLastFollowUp={true}
 					/>
 				</TooltipProvider>
 			</TestExtensionStateProvider>,
@@ -345,7 +347,7 @@ describe("FollowUpSuggest", () => {
 						ts={123}
 						onCancelAutoApproval={mockOnCancelAutoApproval}
 						countdown={1}
-						isAnswered={false}
+						isLastFollowUp={true}
 					/>
 				</TooltipProvider>
 			</TestExtensionStateProvider>,
@@ -364,7 +366,7 @@ describe("FollowUpSuggest", () => {
 						ts={123}
 						onCancelAutoApproval={mockOnCancelAutoApproval}
 						countdown={0}
-						isAnswered={false}
+						isLastFollowUp={true}
 					/>
 				</TooltipProvider>
 			</TestExtensionStateProvider>,
@@ -382,7 +384,7 @@ describe("FollowUpSuggest", () => {
 				ts={123}
 				onCancelAutoApproval={mockOnCancelAutoApproval}
 				countdown={3}
-				isAnswered={false}
+				isLastFollowUp={true}
 			/>,
 			defaultTestState,
 		)
