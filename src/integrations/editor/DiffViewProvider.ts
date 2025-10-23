@@ -631,21 +631,13 @@ export class DiffViewProvider {
 	 * @param newContent - New file content
 	 */
 	private positionCursorAtFirstChange(editor: vscode.TextEditor, originalContent: string, newContent: string) {
-		const diffs = diff.diffLines(originalContent, newContent)
-		let lineCount = 0
+		const changedLine = getFirstChangedNewLine(originalContent, newContent)
 
-		for (const part of diffs) {
-			if (part.added || part.removed) {
-				// Found the first change, position cursor there
-				const position = new vscode.Position(lineCount, 0)
-				editor.selection = new vscode.Selection(position, position)
-				editor.revealRange(new vscode.Range(lineCount, 0, lineCount, 0), vscode.TextEditorRevealType.InCenter)
-				return
-			}
-
-			if (!part.removed) {
-				lineCount += part.count || 0
-			}
+		if (changedLine !== null) {
+			const lineIndex = changedLine - 1
+			const pos = new vscode.Position(lineIndex, 0)
+			editor.selection = new vscode.Selection(pos, pos)
+			editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter)
 		}
 	}
 
@@ -776,4 +768,25 @@ export class DiffViewProvider {
 			finalContent: content,
 		}
 	}
+}
+
+function getFirstChangedNewLine(original: string, modified: string): number | null {
+	const diffs = diff.diffLines(original, modified)
+
+	let newLine = 0
+
+	for (let i = 0; i < diffs.length; i++) {
+		const part = diffs[i]
+		const lineCount = part.value.split("\n").length - 1
+
+		if (part.added || part.removed) {
+			return newLine + 1
+		}
+
+		if (!part.removed) {
+			newLine += lineCount
+		}
+	}
+
+	return null
 }
