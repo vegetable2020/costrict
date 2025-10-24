@@ -84,7 +84,6 @@ interface ChatRowProps {
 	onFollowUpUnmount?: () => void
 	// isFollowUpAnswered?: boolean
 	isFollowUpAnswered?: boolean
-	countdown?: number
 	editable?: boolean
 	shouldHighlight?: boolean
 	searchResults?: SearchResult[]
@@ -154,7 +153,6 @@ export const ChatRowContent = ({
 	onBatchFileResponse,
 	// isFollowUpAnswered,
 	isFollowUpAnswered,
-	countdown,
 	editable,
 	searchQuery,
 }: ChatRowContentProps) => {
@@ -1676,8 +1674,7 @@ export const ChatRowContent = ({
 									onSuggestionClick={onSuggestionClick}
 									ts={message?.ts}
 									onCancelAutoApproval={onFollowUpUnmount}
-									countdown={countdown}
-									isFollowUpAnswered={isFollowUpAnswered}
+									isAnswered={isFollowUpAnswered}
 									// isAnswered={isFollowUpAnswered}
 								/>
 							</div>

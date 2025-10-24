@@ -90,7 +90,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	const { t } = useAppTranslation()
 	const { t: tSettings } = useTranslation("settings")
 	const modeShortcutText = `${isMac ? "⌘" : "Ctrl"} + . ${t("chat:forNextMode")}, ${isMac ? "⌘" : "Ctrl"} + Shift + . ${t("chat:forPreviousMode")}`
-	const [countdown, setCountdown] = useState<number>(0)
 
 	const {
 		clineMessages: messages,
@@ -611,8 +610,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 				// Mark that user has responded - this prevents any pending auto-approvals.
 				userRespondedRef.current = true
-				// Reset countdown when user responds
-				setCountdown(0)
 
 				if (messagesRef.current.length === 0) {
 					vscode.postMessage({ type: "newTask", text, images, values: { chatType } })
@@ -699,8 +696,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		(text?: string, images?: string[]) => {
 			// Mark that user has responded
 			userRespondedRef.current = true
-			// Reset countdown when user responds
-			setCountdown(0)
 
 			const trimmedInput = text?.trim()
 
@@ -748,8 +743,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		(text?: string, images?: string[]) => {
 			// Mark that user has responded
 			userRespondedRef.current = true
-			// Reset countdown when user responds
-			setCountdown(0)
 
 			const trimmedInput = text?.trim()
 
@@ -863,17 +856,17 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			// not using its value but its reference.
 		},
 		[
-			isCondensing,
+			currentTaskItem?.id,
 			isHidden,
 			sendingDisabled,
 			enableButtons,
-			currentTaskItem,
 			handleChatReset,
 			handleSendMessage,
 			handleSetChatBoxMessage,
 			handlePrimaryButtonClick,
 			handleSecondaryButtonClick,
 			handeSetChatBoxMessageByContext,
+			isCondensing,
 		],
 	)
 
@@ -1547,13 +1540,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	const handleFollowUpUnmount = useCallback(() => {
 		// Mark that user has responded
 		userRespondedRef.current = true
-		// Reset countdown when follow-up is unmounted
-		setCountdown(0)
-		// Clear any pending timeout
-		if (autoApproveTimeoutRef.current) {
-			clearTimeout(autoApproveTimeoutRef.current)
-			autoApproveTimeoutRef.current = null
-		}
 	}, [])
 	const shouldHighlight = useCallback(
 		(messageOrGroup?: ClineMessage, searchResults: SearchResult[] = [], showSearch?: boolean) => {
@@ -1603,8 +1589,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					onSuggestionClick={handleSuggestionClickInRow} // This was already stabilized
 					onBatchFileResponse={handleBatchFileResponse}
 					onFollowUpUnmount={handleFollowUpUnmount}
-					countdown={countdown}
-					isFollowUpAnswered={messageOrGroup.isLastFollowUp === false || messageOrGroup.ts === currentFollowUpTs}
+					isFollowUpAnswered={currentFollowUpTs != null && messageOrGroup.ts <= currentFollowUpTs}
 					editable={
 						messageOrGroup.type === "ask" &&
 						messageOrGroup.ask === "tool" &&
@@ -1629,7 +1614,25 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				/>
 			)
 		},
-		[expandedRows, toggleRowExpansion, modifiedMessages, groupedMessages.length, handleRowHeightChange, isStreaming, handleSuggestionClickInRow, handleBatchFileResponse, handleFollowUpUnmount, countdown, currentFollowUpTs, shouldHighlight, searchResults, showSearch, searchQuery, alwaysAllowUpdateTodoList, enableButtons, primaryButtonText],
+		[
+			expandedRows,
+			toggleRowExpansion,
+			modifiedMessages,
+			groupedMessages.length,
+			handleRowHeightChange,
+			isStreaming,
+			handleSuggestionClickInRow,
+			handleBatchFileResponse,
+			handleFollowUpUnmount,
+			currentFollowUpTs,
+			shouldHighlight,
+			searchResults,
+			showSearch,
+			searchQuery,
+			alwaysAllowUpdateTodoList,
+			enableButtons,
+			primaryButtonText,
+		],
 	)
 
 	useEffect(() => {
@@ -1640,13 +1643,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 		// Reset countdown when there's no ask or buttons are disabled
 		if (!clineAsk || !enableButtons) {
-			setCountdown(0)
 			return
 		}
 
 		// Exit early if user has already responded
 		if (userRespondedRef.current) {
-			setCountdown(0)
 			return
 		}
 
@@ -1672,50 +1673,33 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				setSendingDisabled(true)
 				setClineAsk(undefined)
 				setEnableButtons(false)
-				setCountdown(0)
 				return
 			}
 
-			// Handle follow-up questions with countdown even if auto-approval is not enabled
-			if (lastMessage?.ask === "followup") {
-				// Handle invalid JSON
-				let followUpData: FollowUpData = {}
-				try {
-					followUpData = JSON.parse(lastMessage.text || "{}") as FollowUpData
-				} catch (error) {
-					console.error("Failed to parse follow-up data:", error)
-					return
-				}
+			// Then check for auto-approve
+			if (lastMessage?.ask && isAutoApproved(lastMessage)) {
+				// Special handling for follow-up questions
+				if (lastMessage.ask === "followup") {
+					// Handle invalid JSON
+					let followUpData: FollowUpData = {}
+					try {
+						followUpData = JSON.parse(lastMessage.text || "{}") as FollowUpData
+					} catch (error) {
+						console.error("Failed to parse follow-up data:", error)
+						return
+					}
 
-				if (followUpData && followUpData.suggest && followUpData.suggest.length > 0) {
-					// Show countdown for follow-up questions if auto-approval is enabled
-					if (isAutoApproved(lastMessage)) {
+					if (followUpData && followUpData.suggest && followUpData.suggest.length > 0) {
 						// Wait for the configured timeout before auto-selecting the first suggestion
 						await new Promise<void>((resolve) => {
-							let timeoutMs = Math.floor((followupAutoApproveTimeoutMs || 60000) / 1000)
-
-							setCountdown(timeoutMs)
-
-							const run = (resolve: any) => {
-								if (timeoutMs <= 0) {
-									setCountdown(0)
-									resolve()
-									return
-								}
-								timeoutMs -= 1
-								autoApproveTimeoutRef.current = setTimeout(() => {
-									setCountdown(timeoutMs)
-									autoApproveTimeoutRef.current = null
-									run(resolve)
-								}, 1000)
-							}
-
-							run(resolve)
+							autoApproveTimeoutRef.current = setTimeout(() => {
+								autoApproveTimeoutRef.current = null
+								resolve()
+							}, followupAutoApproveTimeoutMs)
 						})
 
 						// Check if user responded manually
 						if (userRespondedRef.current) {
-							setCountdown(0)
 							return
 						}
 
@@ -1725,38 +1709,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 						// Handle the suggestion click
 						handleSuggestionClickInRow(firstSuggestion)
 						return
-					} else {
-						// Even if auto-approval is not enabled, show a visual countdown for user awareness
-						// This helps users understand the timeout behavior
-						const timeoutMs = Math.floor((followupAutoApproveTimeoutMs || 60000) / 1000)
-						setCountdown(timeoutMs)
-						
-						// Start a visual countdown that doesn't auto-approve
-						const startVisualCountdown = () => {
-							let remainingTime = timeoutMs
-							const intervalId = setInterval(() => {
-								remainingTime -= 1
-								if (remainingTime <= 0 || userRespondedRef.current) {
-									setCountdown(0)
-									clearInterval(intervalId)
-								} else {
-									setCountdown(remainingTime)
-								}
-							}, 1000)
-							
-							// Store the interval for cleanup
-							autoApproveTimeoutRef.current = intervalId as any
-						}
-						
-						startVisualCountdown()
-						return
 					}
-				}
-			}
-
-			// Then check for auto-approve for other types
-			if (lastMessage?.ask && isAutoApproved(lastMessage)) {
-				if (lastMessage.ask === "tool" && isWriteToolAction(lastMessage)) {
+				} else if (lastMessage.ask === "tool" && isWriteToolAction(lastMessage)) {
 					await new Promise<void>((resolve) => {
 						autoApproveTimeoutRef.current = setTimeout(() => {
 							autoApproveTimeoutRef.current = null
@@ -1770,7 +1724,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				setSendingDisabled(true)
 				setClineAsk(undefined)
 				setEnableButtons(false)
-				setCountdown(0)
 			}
 		}
 		autoApproveOrReject()

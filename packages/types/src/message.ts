@@ -215,7 +215,7 @@ export const clineMessageSchema = z.object({
 	contextCondense: contextCondenseSchema.optional(),
 	isProtected: z.boolean().optional(),
 	apiProtocol: z.union([z.literal("openai"), z.literal("anthropic")]).optional(),
-	isLastFollowUp: z.boolean().optional(),
+	isAnswered: z.boolean().optional(),
 	metadata: z
 		.object({
 			isRateLimit: z.boolean().optional(),
