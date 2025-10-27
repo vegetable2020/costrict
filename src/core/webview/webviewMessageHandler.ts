@@ -2886,7 +2886,7 @@ export const webviewMessageHandler = async (
 				const { apiConfiguration } = await provider.getState()
 
 				if (apiConfiguration?.apiProvider !== "zgsm") {
-					provider.log("Only Costrict provider supports this service", "error", "ZgsmCodebaseIndexManager")
+					provider.log("Only CoStrict provider supports this service", "error", "ZgsmCodebaseIndexManager")
 					return
 				}
 
@@ -3298,7 +3298,7 @@ export const webviewMessageHandler = async (
 				const { apiConfiguration } = await provider.getState()
 
 				if (apiConfiguration?.apiProvider !== "zgsm") {
-					provider.log("Only Costrict provider supports this service", "error", "ZgsmCodebaseIndexManager")
+					provider.log("Only CoStrict provider supports this service", "error", "ZgsmCodebaseIndexManager")
 					return
 				}
 				// Get switch status from message.bool
@@ -3368,7 +3368,7 @@ export const webviewMessageHandler = async (
 				const { apiConfiguration } = await provider.getState()
 
 				if (apiConfiguration?.apiProvider !== "zgsm") {
-					provider.log("Only Costrict provider supports this service", "error", "ZgsmCodebaseIndexManager")
+					provider.log("Only CoStrict provider supports this service", "error", "ZgsmCodebaseIndexManager")
 					return
 				}
 				const zgsmCodebaseIndexManager = ZgsmCodebaseIndexManager.getInstance()
