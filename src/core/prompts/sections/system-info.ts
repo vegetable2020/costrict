@@ -3,13 +3,13 @@ import { getOperatingSystem } from "../../../utils/zgsmUtils"
 
 import { getShell } from "../../../utils/shell"
 
-export function getSystemInfoSection(cwd: string): string {
+export function getSystemInfoSection(cwd: string, shell?: string): string {
 	let details = `====
 
 SYSTEM INFORMATION
 
 Operating System: ${getOperatingSystem()}
-Default Shell: ${getShell()}
+Default Shell: ${shell}
 Home Directory: ${os.homedir().toPosix()}
 Current Workspace Directory: ${cwd.toPosix()}
 

@@ -382,6 +382,8 @@ function getShellFromEnv(): string | null {
  * Validates if a shell path is in the allowlist to prevent arbitrary command execution
  */
 function isShellAllowed(shellPath: string): boolean {
+	console.log("isShellAllowed", shellPath)
+
 	if (!shellPath) return false
 
 	const normalizedPath = path.normalize(shellPath)
@@ -433,7 +435,7 @@ function getSafeFallbackShell(): string {
  *
  * @returns Detected shell executable path
  */
-export function getShell(): string {
+export function getShell(terminalShellIntegrationDisabled = false): string {
 	let shell: string | null = null
 	const updateTime = Date.now()
 	if (process.env.NODE_ENV !== "test" && shellCache.shell && updateTime - shellCache.updateAt < 15000) {
@@ -741,12 +743,10 @@ async function getCMDVersion(shellPath: string): Promise<string | null> {
  *
  * @returns Terminal information object containing name, version and path
  */
-export async function getWindowsTerminalInfo(): Promise<TerminalInfo | null> {
+export async function getWindowsTerminalInfo(shellPath: string): Promise<TerminalInfo | null> {
 	if (process.platform !== "win32") {
 		return null
 	}
-
-	const shellPath = getShell()
 
 	// Determine terminal name and version based on path
 	if (shellPath.toLowerCase().includes("pwsh.exe")) {

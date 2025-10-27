@@ -2455,6 +2455,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			maxConcurrentFileReads,
 			maxReadFileLine,
 			apiConfiguration,
+			terminalShellIntegrationDisabled,
 		} = state ?? {}
 
 		return await (async () => {
@@ -2493,6 +2494,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				rooIgnoreInstructions,
 				maxReadFileLine !== -1,
 				{
+					terminalShellIntegrationDisabled,
 					maxConcurrentFileReads: maxConcurrentFileReads ?? 5,
 					todoListEnabled: apiConfiguration?.todoListEnabled ?? true,
 					useAgentRules: vscode.workspace.getConfiguration("zgsm").get<boolean>("useAgentRules") ?? true,
