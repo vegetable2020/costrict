@@ -177,9 +177,6 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 			}
 		}
 	}
-
-	// console.log(`[Task#getEnvironmentDetails] terminalDetails: ${terminalDetails}`)
-
 	// Add recently modified files section.
 	const recentlyModifiedFiles = cline.fileContextTracker.getAndClearRecentlyModifiedFiles()
 
@@ -236,7 +233,7 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 
 	details += `\n\n# Operating System\n${getOperatingSystem()}`
 	details += `\n\n# Current Shell\n${shell}`
-	const winTerminalInfo = await getWindowsTerminalInfo(shell)
+	const winTerminalInfo = getWindowsTerminalInfo(shell)
 
 	if (winTerminalInfo) {
 		const { unsupportSyntax, features } = winTerminalInfo

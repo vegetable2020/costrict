@@ -1020,11 +1020,15 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		}
 	}
 
-	async handleTerminalOperation(terminalOperation: "continue" | "abort") {
+	async handleTerminalOperation(terminalOperation: "continue" | "abort", pid?: number) {
 		if (terminalOperation === "continue") {
 			this.terminalProcess?.continue()
 		} else if (terminalOperation === "abort") {
-			this.terminalProcess?.abort()
+			if (this.terminalProcess) {
+				this.terminalProcess.abort()
+			} else if (pid) {
+				process.kill(pid, "SIGKILL")
+			}
 		}
 	}
 

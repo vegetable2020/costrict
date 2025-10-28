@@ -6,6 +6,7 @@ import { BaseTerminal } from "./BaseTerminal"
 import { TerminalProcess } from "./TerminalProcess"
 import { ShellIntegrationManager } from "./ShellIntegrationManager"
 import { mergePromise } from "./mergePromise"
+import { getExtensionUri } from "../theme/getTheme"
 
 export class Terminal extends BaseTerminal {
 	public terminal: vscode.Terminal
@@ -16,7 +17,7 @@ export class Terminal extends BaseTerminal {
 		super("vscode", id, cwd)
 
 		const env = Terminal.getEnv()
-		const iconPath = new vscode.ThemeIcon("rocket")
+		const iconPath = vscode.Uri.joinPath(getExtensionUri(), "assets", "costrict", "logo.svg")
 		this.terminal = terminal ?? vscode.window.createTerminal({ cwd, name: "CoStrict", iconPath, env })
 
 		if (Terminal.getTerminalZdotdir()) {

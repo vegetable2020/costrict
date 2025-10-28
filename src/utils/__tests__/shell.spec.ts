@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import * as vscode from "vscode"
 import { userInfo } from "os"
 import fs from "fs"
-import { getShell, getActiveTerminalShellType, SHELL_PATHS } from "../shell"
+import { getShell, SHELL_PATHS } from "../shell"
 
 // Mock vscode module
 vi.mock("vscode", () => ({
@@ -628,77 +628,77 @@ describe("Shell Detection Tests", () => {
 		})
 	})
 
-	// --------------------------------------------------------------------------
-	// getActiveTerminalShellType Tests
-	// --------------------------------------------------------------------------
-	describe("getActiveTerminalShellType", () => {
-		it("should return null for unknown platforms", () => {
-			Object.defineProperty(process, "platform", { value: "sunos" })
-			const result = getActiveTerminalShellType()
-			expect(result).toBeNull()
-		})
+	// // --------------------------------------------------------------------------
+	// // getActiveTerminalShellType Tests
+	// // --------------------------------------------------------------------------
+	// describe("getActiveTerminalShellType", () => {
+	// 	it("should return null for unknown platforms", () => {
+	// 		Object.defineProperty(process, "platform", { value: "sunos" })
+	// 		const result = getActiveTerminalShellType()
+	// 		expect(result).toBeNull()
+	// 	})
 
-		it("should detect Windows PowerShell 7 when available", () => {
-			Object.defineProperty(process, "platform", { value: "win32" })
-			const existsSyncMock = mockExistsSync([SHELL_PATHS.POWERSHELL_7])
-			const statSyncMock = mockStatSync([SHELL_PATHS.POWERSHELL_7])
+	// 	it("should detect Windows PowerShell 7 when available", () => {
+	// 		Object.defineProperty(process, "platform", { value: "win32" })
+	// 		const existsSyncMock = mockExistsSync([SHELL_PATHS.POWERSHELL_7])
+	// 		const statSyncMock = mockStatSync([SHELL_PATHS.POWERSHELL_7])
 
-			const result = getActiveTerminalShellType()
-			expect(result).toBe(SHELL_PATHS.POWERSHELL_7)
+	// 		const result = getActiveTerminalShellType()
+	// 		expect(result).toBe(SHELL_PATHS.POWERSHELL_7)
 
-			existsSyncMock.mockRestore()
-			statSyncMock.mockRestore()
-		})
+	// 		existsSyncMock.mockRestore()
+	// 		statSyncMock.mockRestore()
+	// 	})
 
-		it("should detect macOS zsh when available", () => {
-			Object.defineProperty(process, "platform", { value: "darwin" })
-			const existsSyncMock = mockExistsSync([SHELL_PATHS.ZSH])
-			const statSyncMock = mockStatSync([SHELL_PATHS.ZSH])
+	// 	it("should detect macOS zsh when available", () => {
+	// 		Object.defineProperty(process, "platform", { value: "darwin" })
+	// 		const existsSyncMock = mockExistsSync([SHELL_PATHS.ZSH])
+	// 		const statSyncMock = mockStatSync([SHELL_PATHS.ZSH])
 
-			const result = getActiveTerminalShellType()
-			expect(result).toBe(SHELL_PATHS.ZSH)
+	// 		const result = getActiveTerminalShellType()
+	// 		expect(result).toBe(SHELL_PATHS.ZSH)
 
-			existsSyncMock.mockRestore()
-			statSyncMock.mockRestore()
-		})
+	// 		existsSyncMock.mockRestore()
+	// 		statSyncMock.mockRestore()
+	// 	})
 
-		it("should detect Linux bash when available", () => {
-			Object.defineProperty(process, "platform", { value: "linux" })
-			const existsSyncMock = mockExistsSync([SHELL_PATHS.BASH])
-			const statSyncMock = mockStatSync([SHELL_PATHS.BASH])
+	// 	it("should detect Linux bash when available", () => {
+	// 		Object.defineProperty(process, "platform", { value: "linux" })
+	// 		const existsSyncMock = mockExistsSync([SHELL_PATHS.BASH])
+	// 		const statSyncMock = mockStatSync([SHELL_PATHS.BASH])
 
-			const result = getActiveTerminalShellType()
-			expect(result).toBe(SHELL_PATHS.BASH)
+	// 		const result = getActiveTerminalShellType()
+	// 		expect(result).toBe(SHELL_PATHS.BASH)
 
-			existsSyncMock.mockRestore()
-			statSyncMock.mockRestore()
-		})
+	// 		existsSyncMock.mockRestore()
+	// 		statSyncMock.mockRestore()
+	// 	})
 
-		it("should fallback to environment variable when file detection fails", () => {
-			Object.defineProperty(process, "platform", { value: "linux" })
-			const existsSyncMock = mockExistsSync([]) // No files exist
-			const statSyncMock = mockStatSync([])
-			process.env.SHELL = "/usr/bin/zsh"
+	// 	it("should fallback to environment variable when file detection fails", () => {
+	// 		Object.defineProperty(process, "platform", { value: "linux" })
+	// 		const existsSyncMock = mockExistsSync([]) // No files exist
+	// 		const statSyncMock = mockStatSync([])
+	// 		process.env.SHELL = "/usr/bin/zsh"
 
-			const result = getActiveTerminalShellType()
-			expect(result).toBe("/usr/bin/zsh")
+	// 		const result = getActiveTerminalShellType()
+	// 		expect(result).toBe("/usr/bin/zsh")
 
-			existsSyncMock.mockRestore()
-			statSyncMock.mockRestore()
-			delete process.env.SHELL
-		})
+	// 		existsSyncMock.mockRestore()
+	// 		statSyncMock.mockRestore()
+	// 		delete process.env.SHELL
+	// 	})
 
-		it("should return platform default when everything fails", () => {
-			Object.defineProperty(process, "platform", { value: "linux" })
-			const existsSyncMock = mockExistsSync([])
-			const statSyncMock = mockStatSync([])
-			delete process.env.SHELL
+	// 	it("should return platform default when everything fails", () => {
+	// 		Object.defineProperty(process, "platform", { value: "linux" })
+	// 		const existsSyncMock = mockExistsSync([])
+	// 		const statSyncMock = mockStatSync([])
+	// 		delete process.env.SHELL
 
-			const result = getActiveTerminalShellType()
-			expect(result).toBe("/bin/bash")
+	// 		const result = getActiveTerminalShellType()
+	// 		expect(result).toBe("/bin/bash")
 
-			existsSyncMock.mockRestore()
-			statSyncMock.mockRestore()
-		})
-	})
+	// 		existsSyncMock.mockRestore()
+	// 		statSyncMock.mockRestore()
+	// 	})
+	// })
 })

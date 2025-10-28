@@ -4,10 +4,11 @@ import { terminalUnsupportedSyntax } from "./shellConstants"
 import fs from "fs"
 import * as path from "path"
 
-const shellCache = {
-	shell: "",
-	updateAt: 0,
-}
+let pwshInstalled = false
+// const shellCache = {
+// 	shell: "",
+// 	updateAt: 0,
+// }
 // Security: Allowlist of approved shell executables to prevent arbitrary command execution
 const SHELL_ALLOWLIST = new Set<string>([
 	// Windows PowerShell variants
@@ -121,8 +122,8 @@ export const SHELL_PATHS = {
 } as const
 
 export interface TerminalInfo {
-	name: string
-	version?: string
+	// name: string
+	// version?: string
 	path: string
 	unsupportSyntax?: string[]
 	features?: string[]
@@ -218,7 +219,10 @@ function getWindowsShellFromVSCode(): string | null {
 			return normalizedPath
 		} else if (profile?.source === "PowerShell") {
 			// If the profile is sourced from PowerShell, assume the newest
-			return SHELL_PATHS.POWERSHELL_7
+			if (!pwshInstalled && fs.statSync(SHELL_PATHS.POWERSHELL_7).isFile()) {
+				pwshInstalled = true
+				return SHELL_PATHS.POWERSHELL_7
+			}
 		}
 		// Otherwise, assume legacy Windows PowerShell
 		return SHELL_PATHS.POWERSHELL_LEGACY
@@ -237,7 +241,7 @@ function getWindowsShellFromVSCode(): string | null {
 
 	// If the profile indicates Git Bash
 	if (defaultProfileName.toLowerCase().includes("bash")) {
-		return SHELL_PATHS.GITBASH
+		return `${profile?.path || SHELL_PATHS.GITBASH}`
 	}
 
 	// If nothing special detected, we assume cmd
@@ -312,8 +316,6 @@ function getShellFromEnv(): string | null {
  * Validates if a shell path is in the allowlist to prevent arbitrary command execution
  */
 function isShellAllowed(shellPath: string): boolean {
-	console.log("isShellAllowed", shellPath)
-
 	if (!shellPath) return false
 
 	const normalizedPath = path.normalize(shellPath)
@@ -367,10 +369,10 @@ function getSafeFallbackShell(): string {
  */
 export function getShell(terminalShellIntegrationDisabled = false): string {
 	let shell: string | null = null
-	const updateTime = Date.now()
-	if (process.env.NODE_ENV !== "test" && shellCache.shell && updateTime - shellCache.updateAt < 15000) {
-		return shellCache.shell
-	}
+	// const updateTime = Date.now()
+	// if (process.env.NODE_ENV !== "test" && shellCache.shell && updateTime - shellCache.updateAt < 5000) {
+	// 	return shellCache.shell
+	// }
 	// 1. Check VS Code config first.
 	if (process.platform === "win32") {
 		// Special logic for Windows
@@ -402,8 +404,8 @@ export function getShell(terminalShellIntegrationDisabled = false): string {
 	if (!isShellAllowed(shell)) {
 		shell = getSafeFallbackShell()
 	}
-	shellCache.shell = shell
-	shellCache.updateAt = updateTime
+	// shellCache.shell = shell
+	// shellCache.updateAt = updateTime
 	return shell
 }
 
@@ -414,7 +416,7 @@ export function getShell(terminalShellIntegrationDisabled = false): string {
  *
  * @returns Terminal information object containing name, version and path
  */
-export async function getWindowsTerminalInfo(shellPath: string): Promise<TerminalInfo | null> {
+export function getWindowsTerminalInfo(shellPath: string): TerminalInfo | null {
 	if (process.platform !== "win32") {
 		return null
 	}
@@ -423,39 +425,38 @@ export async function getWindowsTerminalInfo(shellPath: string): Promise<Termina
 	if (shellPath.toLowerCase().includes("pwsh.exe")) {
 		// PowerShell 7+
 		return {
-			name: "PowerShell",
+			// name: "pwsh",
 			path: shellPath,
-			unsupportSyntax: terminalUnsupportedSyntax.powershell7.unsupported,
-			features: terminalUnsupportedSyntax.powershell7.features,
+			unsupportSyntax: terminalUnsupportedSyntax.pwsh.unsupported,
+			features: terminalUnsupportedSyntax.pwsh.features,
 		}
 	} else if (shellPath.toLowerCase().includes("powershell.exe")) {
 		// Windows PowerShell (5.1 and earlier versions)
 		return {
-			name: "Windows PowerShell",
+			// name: "powershell",
 			path: shellPath,
-			unsupportSyntax: terminalUnsupportedSyntax.powershell5.unsupported,
-			features: terminalUnsupportedSyntax.powershell5.features,
+			unsupportSyntax: terminalUnsupportedSyntax.powershell.unsupported,
+			features: terminalUnsupportedSyntax.powershell.features,
 		}
 	} else if (shellPath.toLowerCase().includes("cmd.exe")) {
 		// Command Prompt
 		return {
-			name: "Command Prompt",
+			// name: "cmd",
 			path: shellPath,
 			unsupportSyntax: terminalUnsupportedSyntax.cmd.unsupported,
 		}
 	} else if (shellPath.toLowerCase().includes("bash.exe")) {
 		// Git Bash, MSYS2, MinGW, Cygwin, etc.
 		return {
-			name: "Bash",
+			// name: "bash",
 			path: shellPath,
-			unsupportSyntax: terminalUnsupportedSyntax.gitBash.unsupported,
-			features: terminalUnsupportedSyntax.gitBash.features,
+			unsupportSyntax: terminalUnsupportedSyntax.bash.unsupported,
+			features: terminalUnsupportedSyntax.bash.features,
 		}
 	} else {
 		// Unknown terminal
 		return {
-			name: "Unknown Terminal",
-			version: "Unknown",
+			// name: "Default Terminal",
 			path: shellPath,
 		}
 	}
