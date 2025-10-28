@@ -38,6 +38,12 @@ vi.mock("vscode", () => {
 				return { dispose: vi.fn() }
 			}),
 		},
+		extensions: {
+			getExtension: vi.fn().mockReturnValue({
+				extensionUri: { fsPath: "/test/extension/path" },
+			}),
+			all: [],
+		},
 		ThemeIcon: class ThemeIcon {
 			constructor(id: string) {
 				this.id = id
@@ -46,6 +52,7 @@ vi.mock("vscode", () => {
 		},
 		Uri: {
 			file: (path: string) => ({ fsPath: path }),
+			joinPath: vi.fn((uri, ...paths) => ({ fsPath: `${uri.fsPath}/${paths.join("/")}` })),
 		},
 		// Expose event handlers for testing
 		__eventHandlers: eventHandlers,

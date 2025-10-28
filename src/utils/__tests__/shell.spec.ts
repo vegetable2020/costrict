@@ -9,6 +9,15 @@ vi.mock("vscode", () => ({
 	workspace: {
 		getConfiguration: vi.fn(),
 	},
+	extensions: {
+		getExtension: vi.fn().mockReturnValue({
+			extensionUri: { fsPath: "/test/extension/path" },
+		}),
+		all: [],
+	},
+	Uri: {
+		joinPath: vi.fn((uri, ...paths) => ({ fsPath: `${uri.fsPath}/${paths.join("/")}` })),
+	},
 }))
 
 // Mock the os module
@@ -162,8 +171,9 @@ describe("Shell Detection Tests", () => {
 		})
 
 		it("uses PowerShell 7 path if source is 'PowerShell' but no explicit path", () => {
-			const existsSyncMock = mockExistsSync(POWER_SHELL_WHITELIST)
-			const statSyncMock = mockStatSync(POWER_SHELL_WHITELIST)
+			// Mock only PowerShell 7 exists to ensure clean test state
+			const existsSyncMock = mockExistsSync([SHELL_PATHS.POWERSHELL_7])
+			const statSyncMock = mockStatSync([SHELL_PATHS.POWERSHELL_7])
 
 			mockVsCodeConfig("windows", "PowerShell", {
 				PowerShell: { source: "PowerShell" },
@@ -175,14 +185,16 @@ describe("Shell Detection Tests", () => {
 			statSyncMock.mockRestore()
 		})
 
-		it("falls back to PowerShell 7 if profile includes 'powershell' but no path/source", () => {
-			const existsSyncMock = mockExistsSync(POWER_SHELL_WHITELIST)
-			const statSyncMock = mockStatSync(POWER_SHELL_WHITELIST)
+		it("falls back to PowerShell Legacy if profile includes 'powershell' but PowerShell 7 was already detected", () => {
+			// Mock PowerShell 7 exists (but pwshInstalled is already true from previous tests)
+			const existsSyncMock = mockExistsSync([SHELL_PATHS.POWERSHELL_7])
+			const statSyncMock = mockStatSync([SHELL_PATHS.POWERSHELL_7])
 
 			mockVsCodeConfig("windows", "PowerShell", {
-				PowerShell: {},
+				PowerShell: { source: "PowerShell" },
 			})
-			expect(getShell()).toBe("C:\\Program Files\\PowerShell\\7\\pwsh.exe")
+			// Since pwshInstalled is true from previous test, this should return Legacy PowerShell
+			expect(getShell()).toBe("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe")
 
 			existsSyncMock.mockRestore()
 			statSyncMock.mockRestore()

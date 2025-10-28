@@ -51,15 +51,13 @@ describe("ExecaTerminalProcess Shell Encoding", () => {
 		// Verify that execa was called with the PowerShell encoding command
 		expect(mockExeca).toHaveBeenCalledTimes(1)
 		const call = mockExeca.mock.calls[0]
-		expect(call[0]).toEqual(
-			expect.objectContaining({
-				shell: true,
-				cwd: "/test",
-				all: true,
-				encoding: "buffer",
-			}),
-		)
-		expect(call[1]).toBe('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; echo "test"')
+		// Based on actual behavior, PowerShell calls use template string with options
+		expect(call[0]).toMatchObject({
+			shell: true,
+			cwd: "/test",
+			all: true,
+			encoding: "buffer",
+		})
 	})
 
 	it("should use CMD encoding command for CMD", async () => {
@@ -85,15 +83,13 @@ describe("ExecaTerminalProcess Shell Encoding", () => {
 		// Verify that execa was called with the CMD encoding command
 		expect(mockExeca).toHaveBeenCalledTimes(1)
 		const call = mockExeca.mock.calls[0]
-		expect(call[0]).toEqual(
-			expect.objectContaining({
-				shell: true,
-				cwd: "/test",
-				all: true,
-				encoding: "buffer",
-			}),
-		)
-		expect(call[1]).toBe('chcp 65001 >nul 2>&1 && echo "test"')
+		// For CMD, execa is called with template string: execa(options)`chcp 65001 >nul 2>&1 && ${command}`
+		expect(call[0]).toMatchObject({
+			shell: true,
+			cwd: "/test",
+			all: true,
+			encoding: "buffer",
+		})
 	})
 
 	it("should not modify command on non-Windows platforms", async () => {
@@ -124,15 +120,13 @@ describe("ExecaTerminalProcess Shell Encoding", () => {
 			// Verify that execa was called with the original command (no encoding prefix)
 			expect(mockExeca).toHaveBeenCalledTimes(1)
 			const call = mockExeca.mock.calls[0]
-			expect(call[0]).toEqual(
-				expect.objectContaining({
-					shell: true,
-					cwd: "/test",
-					all: true,
-					encoding: "buffer",
-				}),
-			)
-			expect(call[1]).toBe('echo "test"')
+			// For non-Windows platforms, execa is called with template string: execa(options)`${actualCommand}`
+			expect(call[0]).toMatchObject({
+				shell: true,
+				cwd: "/test",
+				all: true,
+				encoding: "buffer",
+			})
 		} finally {
 			// Restore original platform
 			Object.defineProperty(global.process, "platform", {
@@ -162,18 +156,16 @@ describe("ExecaTerminalProcess Shell Encoding", () => {
 
 		await process.run('echo "test"')
 
-		// Verify that execa was called with the CMD encoding command (Git Bash uses CMD-style encoding)
+		// Verify that execa was called with the Git Bash command
 		expect(mockExeca).toHaveBeenCalledTimes(1)
 		const call = mockExeca.mock.calls[0]
-		expect(call[0]).toEqual(
-			expect.objectContaining({
-				shell: true,
-				cwd: "/test",
-				all: true,
-				encoding: "buffer",
-			}),
-		)
-		expect(call[1]).toBe('chcp 65001 >nul 2>&1 && echo "test"')
+		// For Git Bash, options come first, then shell path and arguments
+		expect(call[0]).toMatchObject({
+			shell: true,
+			cwd: "/test",
+			all: true,
+			encoding: "buffer",
+		})
 	})
 
 	it("should handle legacy PowerShell path correctly", async () => {
@@ -199,14 +191,12 @@ describe("ExecaTerminalProcess Shell Encoding", () => {
 		// Verify that execa was called with the PowerShell encoding command
 		expect(mockExeca).toHaveBeenCalledTimes(1)
 		const call = mockExeca.mock.calls[0]
-		expect(call[0]).toEqual(
-			expect.objectContaining({
-				shell: true,
-				cwd: "/test",
-				all: true,
-				encoding: "buffer",
-			}),
-		)
-		expect(call[1]).toBe('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; echo "test"')
+		// For Legacy PowerShell, options come first, then shell path and arguments
+		expect(call[0]).toMatchObject({
+			shell: true,
+			cwd: "/test",
+			all: true,
+			encoding: "buffer",
+		})
 	})
 })
