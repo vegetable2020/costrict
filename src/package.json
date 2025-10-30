@@ -94,6 +94,11 @@
 		},
 		"commands": [
 			{
+				"command": "zgsm.autocompletion",
+				"title": "autocompletion",
+				"shortTitle": "autocompletion"
+			},
+			{
 				"command": "zgsm-completion.shortKeyCut",
 				"title": "%command.shortKeyCut.title%",
 				"shortTitle": "%command.shortKeyCut.title%"

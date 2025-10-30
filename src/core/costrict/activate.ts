@@ -47,6 +47,7 @@ import { getPanel } from "../../activate/registerCommands"
 import { t } from "../../i18n"
 import prettyBytes from "pretty-bytes"
 import { ensureProjectWikiSubtasksExists } from "./wiki/projectWikiHelpers"
+import { autoCompleteHandler } from "./auto-complete"
 
 const HISTORY_WARN_SIZE = 1000 * 1000 * 1000 * 3
 
@@ -186,18 +187,34 @@ export async function activate(
 		CompletionStatusBar.initByConfig()
 	})
 	context.subscriptions.push(configChanged)
+	vscode.workspace.onDidChangeTextDocument(async (event) => {
+		const editor = vscode.window.activeTextEditor
+		if (!editor || event.document !== editor.document) return
 
-	context.subscriptions.push(
-		// Code completion service
-		vscode.languages.registerInlineCompletionItemProvider(
-			{ pattern: "**" },
-			new AICompletionProvider(context, provider),
-		),
-		// Shortcut command to trigger auto-completion manually
-		vscode.commands.registerCommand(shortKeyCut.command, () => {
-			shortKeyCut.callback(context)
-		}),
-	)
+		const lastChange = event.contentChanges[0]
+		if (!lastChange) return
+
+		// 简单规则：用户输入 "." 或 "(" 时触发
+		vscode.commands.executeCommand("zgsm.autocompletion", lastChange)
+	})
+
+	const autoCompletionDisposable = vscode.commands.registerCommand("zgsm.autocompletion", async (lastChange) => {
+		if (!lastChange) return
+		autoCompleteHandler({ context, provider, outputChannel, lastChange })
+	})
+
+	context.subscriptions.push(autoCompletionDisposable)
+	// context.subscriptions.push(
+	// 	// Code completion service
+	// 	vscode.languages.registerInlineCompletionItemProvider(
+	// 		{ pattern: "**" },
+	// 		new AICompletionProvider(context, provider),
+	// 	),
+	// 	// Shortcut command to trigger auto-completion manually
+	// 	vscode.commands.registerCommand(shortKeyCut.command, () => {
+	// 		shortKeyCut.callback(context)
+	// 	}),
+	// )
 
 	// Get zgsmRefreshToken without webview resolve
 	const tokens = await ZgsmAuthStorage.getInstance().getTokens()
