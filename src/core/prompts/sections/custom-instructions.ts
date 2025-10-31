@@ -290,7 +290,7 @@ export async function addCustomInstructions(
 					(shellPath.includes("powershell.exe") ||
 						shellPath.includes("pwsh.exe") ||
 						shellPath.includes("cmd.exe"))
-						? `- **IMPORTANT: Before using the \`execute_command\` tool, you must first think about the <environment_details> context provided to understand the user's environment and tailor your commands to ensure they are compatible with their system. **`
+						? `- **IMPORTANT: Before using the \`execute_command\` tool, you must first think about the <environment_details> context provided to understand the user's environment and tailor your commands to ensure they are compatible with their system.It must be ensured that the encoding during command execution is UTF-8. **`
 						: "",
 				]
 
