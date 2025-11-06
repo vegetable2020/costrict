@@ -159,11 +159,16 @@ export function useZgsmUserInfo(tokenOrConfig?: string | ProviderSettings): Zgsm
 }
 
 function fixEncoding(name?: string) {
-	const misencodedPattern = /[\x80-\xFF]+/
-	if (!name || !misencodedPattern.test(name)) {
+	try {
+		const misencodedPattern = /[\x80-\xFF]+/
+		if (!name || !misencodedPattern.test(name)) {
+			return name
+		}
+
+		const bytes = Array.from(name, (c) => c.charCodeAt(0))
+		return new TextDecoder("utf-8").decode(new Uint8Array(bytes))
+	} catch (error) {
+		console.error(error)
 		return name
 	}
-
-	const bytes = Array.from(name, (c) => c.charCodeAt(0))
-	return new TextDecoder("utf-8").decode(new Uint8Array(bytes))
 }
