@@ -106,12 +106,13 @@ export function useZgsmUserInfo(tokenOrConfig?: string | ProviderSettings): Zgsm
 			try {
 				const parsedJwt = parseJwt(token)
 
+				const id = parsedJwt.universal_id
 				const userInfo: ZgsmUserInfo = {
-					id: parsedJwt.universal_id || parsedJwt.id,
-					name: parsedJwt?.properties?.oauth_GitHub_username || parsedJwt.id || parsedJwt.phone,
+					id,
+					name: parsedJwt?.properties?.oauth_GitHub_username || parsedJwt.displayName || parsedJwt.phone || (id ? `user_${id}`.slice(0, 10): id),
 					picture: parsedJwt.avatar || parsedJwt?.properties?.oauth_GitHub_avatarUrl,
 					email: parsedJwt.email || parsedJwt?.properties?.oauth_GitHub_email,
-					phone: parsedJwt.phone,
+					phone: parsedJwt.phone || parsedJwt.phone_number,
 					organizationName: parsedJwt.organizationName,
 					organizationImageUrl: parsedJwt.organizationImageUrl,
 				}
