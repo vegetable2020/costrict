@@ -966,6 +966,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 			if (lastFollowUpIndex !== -1) {
 				// Mark this follow-up as answered
+				// this.clineMessages[lastFollowUpIndex].isAnswered = true
 				const item = this.clineMessages[lastFollowUpIndex]
 				item.isAnswered = !!item.partial
 				// Save the updated messages
@@ -1024,9 +1025,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		if (terminalOperation === "continue") {
 			this.terminalProcess?.continue()
 		} else if (terminalOperation === "abort") {
-			if (this.terminalProcess) {
-				this.terminalProcess.abort()
-			} else if (pid) {
+			this.terminalProcess?.abort()
+			if (pid) {
 				process.kill(pid, "SIGKILL")
 			}
 		}
@@ -1127,9 +1127,6 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		}
 		const isRateLimitRetry = !!(type === "api_req_retry_delayed" && text && text?.startsWith("Rate limiting for"))
 
-		if (type === "checkpoint_saved") {
-		}
-		// "checkpoint_saved"
 		if (partial !== undefined) {
 			const lastMessage = this.clineMessages.at(-1)
 
@@ -1835,7 +1832,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				includeDiagnosticMessages = true,
 				maxDiagnosticMessages = 50,
 				maxReadFileLine = -1,
-				maxReadCharacterLimit = 20000,
+				maxReadCharacterLimit = 50000,
 				apiRequestBlockHide = true,
 			} = (await this.providerRef.deref()?.getState()) ?? {}
 
@@ -1943,6 +1940,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				}
 
 				const abortStream = async (cancelReason: ClineApiReqCancelReason, streamingFailedMessage?: string) => {
+					this?.api?.cancelChat?.(cancelReason)
+
 					if (this.diffViewProvider.isEditing) {
 						await this.diffViewProvider.revertChanges() // closes diff view
 					}
@@ -1965,8 +1964,6 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					// Signals to provider that it can retrieve the saved messages
 					// from disk, as abortTask can not be awaited on in nature.
 					this.didFinishAbortingStream = true
-
-					this?.api?.cancelChat?.(cancelReason)
 				}
 
 				// Reset streaming state for each new API request
@@ -2087,7 +2084,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 						}
 
 						if (this.abort) {
-							this?.api?.cancelChat?.(this.abortReason)
+							console.log(`aborting stream, this.abandoned = ${this.abandoned}`)
 
 							if (!this.abandoned) {
 								// Only need to gracefully abort if this instance
@@ -2781,7 +2778,6 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			// Show countdown timer
 			for (let i = rateLimitDelay; i > 0; i--) {
 				const delayMessage = `Rate limiting for ${i} seconds...`
-				this.providerRef.deref()?.log(`[Task#${this.taskId}] ${delayMessage}`)
 				await this.say("api_req_retry_delayed", delayMessage, undefined, true)
 				await delay(1000)
 			}
