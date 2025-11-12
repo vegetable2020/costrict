@@ -129,6 +129,7 @@ export class ErrorCodeManager {
 	 * @returns Formatted error information object
 	 */
 	public async parseResponse(error: any, isZgsm = false, taskId: string, instanceId: string): Promise<string> {
+		// error.error
 		const isHtml = error?.headers && error.headers["content-type"] && error.headers["content-type"] === "text/html"
 		let rawError =
 			(error.error?.metadata?.raw ? JSON.stringify(error.error.metadata.raw, null, 2) : error.message) ||
