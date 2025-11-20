@@ -522,7 +522,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 
 		if (id.toLowerCase().includes("gemini")) {
 			Object.assign(info, {
-				supportsNativeTools: true,
+				supportsNativeTools: false,
 			})
 		}
 
