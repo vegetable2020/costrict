@@ -262,7 +262,7 @@ export const TerminalSettings = ({
 											min={1000}
 											max={60000}
 											step={1000}
-											value={[terminalShellIntegrationTimeout ?? 5000]}
+											value={[terminalShellIntegrationTimeout ?? 4000]}
 											onValueChange={([value]) =>
 												setCachedStateField(
 													"terminalShellIntegrationTimeout",
@@ -271,7 +271,7 @@ export const TerminalSettings = ({
 											}
 										/>
 										<span className="w-10">
-											{(terminalShellIntegrationTimeout ?? 5000) / 1000}s
+											{(terminalShellIntegrationTimeout ?? 4000) / 1000}s
 										</span>
 									</div>
 									<div className="text-vscode-descriptionForeground text-sm mt-1">

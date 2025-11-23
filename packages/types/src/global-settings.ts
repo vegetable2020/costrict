@@ -343,7 +343,7 @@ export const EVALS_SETTINGS: RooCodeSettings = {
 	terminalOutputLineLimit: 500,
 	terminalOutputCharacterLimit: DEFAULT_TERMINAL_OUTPUT_CHARACTER_LIMIT,
 	maxReadCharacterLimit: DEFAULT_FILE_READ_CHARACTER_LIMIT,
-	terminalShellIntegrationTimeout: 30000,
+	terminalShellIntegrationTimeout: 4000,
 	terminalCommandDelay: 150,
 	terminalPowershellCounter: false,
 	terminalZshOhMy: true,
