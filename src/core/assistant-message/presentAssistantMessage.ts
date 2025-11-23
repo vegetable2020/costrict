@@ -39,6 +39,7 @@ import { codebaseSearchTool } from "../tools/CodebaseSearchTool"
 import { experiments, EXPERIMENT_IDS } from "../../shared/experiments"
 import { applyDiffTool as applyDiffToolClass } from "../tools/ApplyDiffTool"
 import { updateCospecMetadata } from "../checkpoints"
+import { fixBrowserLaunchAction } from "../../utils/fixbrowserLaunchAction"
 
 /**
  * Processes and presents assistant message content to the user interface.
@@ -219,7 +220,7 @@ export async function presentAssistantMessage(cline: Task) {
 					case "list_code_definition_names":
 						return `[${block.name} for '${block.params.path}']`
 					case "browser_action":
-						return `[${block.name} for '${block.params.action}']`
+						return `[${block.name} for '${fixBrowserLaunchAction(block.params)}']`
 					case "use_mcp_tool":
 						return `[${block.name} for '${block.params.server_name}']`
 					case "access_mcp_resource":

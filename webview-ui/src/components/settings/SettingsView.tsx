@@ -371,7 +371,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 					screenshotQuality: screenshotQuality ?? 75,
 					terminalOutputLineLimit: terminalOutputLineLimit ?? 500,
 					terminalOutputCharacterLimit: terminalOutputCharacterLimit ?? 50_000,
-					terminalShellIntegrationTimeout: terminalShellIntegrationTimeout ?? 4000,
+					terminalShellIntegrationTimeout: terminalShellIntegrationTimeout ?? 30_000,
 					terminalShellIntegrationDisabled,
 					terminalCommandDelay,
 					terminalPowershellCounter,
