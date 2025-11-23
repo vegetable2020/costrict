@@ -304,7 +304,18 @@ export const ChatRowContent = ({
 	const errorColor = "var(--vscode-errorForeground)"
 	const successColor = "var(--vscode-charts-green)"
 	const cancelledColor = "var(--vscode-descriptionForeground)"
-
+	const getIconSpan = (iconName: string, color: string) => (
+		<div
+			style={{
+				width: 16,
+				height: 16,
+				display: "flex",
+				alignItems: "center",
+				justifyContent: "center",
+			}}>
+			<span className={`codicon codicon-${iconName}`} style={{ color, fontSize: 16, marginBottom: "-1.5px" }} />
+		</div>
+	)
 	const [icon, title] = useMemo(() => {
 		switch (type) {
 			case "error":
@@ -350,21 +361,6 @@ export const ChatRowContent = ({
 			case "api_req_retry_delayed":
 				return []
 			case "api_req_started":
-				const getIconSpan = (iconName: string, color: string) => (
-					<div
-						style={{
-							width: 16,
-							height: 16,
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-						}}>
-						<span
-							className={`codicon codicon-${iconName}`}
-							style={{ color, fontSize: 16, marginBottom: "-1.5px" }}
-						/>
-					</div>
-				)
 				return [
 					apiReqCancelReason !== null && apiReqCancelReason !== undefined ? (
 						apiReqCancelReason === "user_cancelled" ? (
@@ -1220,7 +1216,9 @@ export const ChatRowContent = ({
 									!apiRequestBlockHide && apiReqStartedRequestText ? handleToggleExpand : () => {}
 								}>
 								<div style={{ display: "flex", alignItems: "center", gap: "10px", flexGrow: 1 }}>
-									{icon}
+									{!apiRequestBlockHide && apiReqStartedRequestText
+										? icon
+										: getIconSpan("arrow-swap", normalColor)}
 									{title}
 								</div>
 								<div
