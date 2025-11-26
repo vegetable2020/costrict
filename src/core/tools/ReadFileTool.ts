@@ -141,7 +141,7 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 
 			for (const fileResult of fileResults) {
 				const relPath = fileResult.path
-				const fullPath = path.resolve(task.cwd, relPath)
+				// const fullPath = path.resolve(task.cwd, relPath)
 
 				if (fileResult.lineRanges) {
 					let hasRangeError = false
@@ -230,7 +230,7 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 							feedbackImages: images,
 						})
 					})
-				} else if (response === "noButtonClicked") {
+				} else if (response === "noButtonClicked" || response === "messageResponse") {
 					if (text) await task.say("user_feedback", text, images)
 					task.didRejectTool = true
 					filesToApprove.forEach((fileResult) => {
