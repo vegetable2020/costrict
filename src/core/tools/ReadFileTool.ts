@@ -406,7 +406,7 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 
 						for (const range of fileResult.lineRanges) {
 							const content = addLineNumbers(
-								await readLines(fullPath, range.end - 1, range.start - 1),
+								await readLines(fullPath, Math.max(range.end - 1, 0), Math.max(range.start - 1, 0)),
 								range.start,
 							)
 							const lineRangeAttr = ` lines="${range.start}-${range.end}"`
