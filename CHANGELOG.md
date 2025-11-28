@@ -1,5 +1,9 @@
 # CoStrict Change Log
 
+## [2.0.19]
+
+- Remove run_test action and simplify run_task action prompt
+
 ## [2.0.18]
 
 - Add vibeplus built-in commands
