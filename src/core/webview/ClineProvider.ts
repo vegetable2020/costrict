@@ -2199,7 +2199,7 @@ export class ClineProvider
 			openRouterImageGenerationSelectedModel,
 			openRouterUseMiddleOutTransform,
 			featureRoomoteControlEnabled,
-			debug: vscode.workspace.getConfiguration(Package.name).get<boolean>("debug", false),
+			debug: vscode.workspace.getConfiguration(Package.name).get<boolean>("debug", isJetbrainsPlatform()),
 		}
 	}
 
