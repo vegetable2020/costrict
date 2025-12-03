@@ -1,5 +1,9 @@
 # CoStrict Change Log
 
+## [2.0.23]
+
+- Fix welcome page login url
+
 ## [2.0.22]
 
 - Add JetBrains platform detection and disable unsupported VS Code features (code completion, CodeLens)
