@@ -17,6 +17,7 @@ import { ClineProvider } from "../../webview/ClineProvider"
 import { SectionContentExtractor, createContentExtractionContext } from "./SectionContentExtractor"
 import { CospecDiffIntegration } from "./CospecDiffIntegration"
 import { CospecMetadata, CospecMetadataManager } from "./CospecMetadataManager"
+import { SelectionAdapter } from "./SelectionAdapter"
 import path from "path"
 import * as fs from "fs/promises"
 import { createTwoFilesPatch } from "diff"
@@ -212,7 +213,7 @@ function getScopePath(uri: vscode.Uri): string {
  * Get task block content based on CodeLens context
  * Enhanced with section extraction support
  */
-async function getTaskBlockContent(commandContext: CoworkflowCommandContext): Promise<string> {
+async function getTaskBlockContent(commandContext: CoworkflowCommandContext, args?: any[]): Promise<string> {
 	const activeEditor = vscode.window.activeTextEditor
 	if (!activeEditor) {
 		return ""
@@ -224,9 +225,8 @@ async function getTaskBlockContent(commandContext: CoworkflowCommandContext): Pr
 			sectionContentExtractor = new SectionContentExtractor()
 		}
 
-		// Get selected text if any
-		const selection = activeEditor.selection
-		const selectedText = !selection.isEmpty ? activeEditor.document.getText(selection) : undefined
+		// 使用 SelectionAdapter 获取选中文本
+		const selectedText = SelectionAdapter.getSelectedText(args)
 
 		// Create extraction context
 		const extractionContext = createContentExtractionContext(commandContext, activeEditor.document, selectedText)
@@ -248,27 +248,27 @@ async function getTaskBlockContent(commandContext: CoworkflowCommandContext): Pr
 
 		// Fallback to legacy method if enhanced extraction fails
 		console.warn("CoworkflowCommands: Enhanced extraction failed, using fallback", result.error)
-		return getTaskBlockContentLegacy(commandContext)
+		return getTaskBlockContentLegacy(commandContext, args)
 	} catch (error) {
 		// Log error and fallback to legacy method
 		console.error("CoworkflowCommands: Error in enhanced content extraction", error)
-		return getTaskBlockContentLegacy(commandContext)
+		return getTaskBlockContentLegacy(commandContext, args)
 	}
 }
 
 /**
  * Legacy task block content extraction (fallback)
  */
-function getTaskBlockContentLegacy(commandContext: CoworkflowCommandContext): string {
+function getTaskBlockContentLegacy(commandContext: CoworkflowCommandContext, args?: any[]): string {
 	const activeEditor = vscode.window.activeTextEditor
 	if (!activeEditor) {
 		return ""
 	}
 
-	// If user has selected text, use that
-	const selection = activeEditor.selection
-	if (!selection.isEmpty) {
-		return activeEditor.document.getText(selection)
+	// 使用 SelectionAdapter 获取选中文本
+	const selectedText = SelectionAdapter.getSelectedText(args)
+	if (selectedText) {
+		return selectedText
 	}
 
 	// If no selection, try to get the task block based on context
@@ -361,7 +361,7 @@ const testMode = "test"
 /**
  * Handle update section command
  */
-async function handleUpdateSection(codeLens: CoworkflowCodeLens): Promise<void> {
+async function handleUpdateSection(codeLens: CoworkflowCodeLens, args?: any): Promise<void> {
 	try {
 		// Validate CodeLens parameter
 		if (!codeLens) {
@@ -384,38 +384,44 @@ async function handleUpdateSection(codeLens: CoworkflowCodeLens): Promise<void> 
 		// 获取选中的文本内容
 		let selectedText = ""
 		try {
-			// 检查是否应该获取差异
-			if (CospecDiffIntegration.shouldGetDiff(commandContext.uri) && provider) {
-				const checkpointMetadata = (await CospecMetadataManager.getMetadataOrDefault(scope))[
-					commandContext.documentType as "requirements" | "design"
-				]
-				console.log("CoworkflowCommands: 开始获取文件与 checkpoint 的差异")
-				if (!checkpointMetadata?.content) {
-					throw new Error("未找到 checkpoint 内容")
+			// 首先尝试使用 SelectionAdapter 获取选中文本
+			const adapterSelectedText = SelectionAdapter.getSelectedText(args)
+			if (adapterSelectedText) {
+				selectedText = adapterSelectedText
+			} else {
+				// 检查是否应该获取差异
+				if (CospecDiffIntegration.shouldGetDiff(commandContext.uri) && provider) {
+					const checkpointMetadata = (await CospecMetadataManager.getMetadataOrDefault(scope))[
+						commandContext.documentType as "requirements" | "design"
+					]
+					console.log("CoworkflowCommands: 开始获取文件与 checkpoint 的差异")
+					if (!checkpointMetadata?.content) {
+						throw new Error("未找到 checkpoint 内容")
+					}
+					const filePath = commandContext.uri.fsPath
+					const content = await fs.readFile(filePath, "utf8")
+					if (content === checkpointMetadata.content) {
+						throw new Error("文件内容未发生变化")
+					}
+					const workspaceFolder = vscode.workspace.getWorkspaceFolder(commandContext.uri)
+					let diffFilePath = filePath
+					if (workspaceFolder) {
+						diffFilePath = path.relative(workspaceFolder?.uri.fsPath, filePath)
+					}
+					selectedText = createTwoFilesPatch(
+						diffFilePath,
+						diffFilePath,
+						checkpointMetadata.content,
+						content,
+						"",
+						"",
+						{ context: 0 },
+					)
 				}
-				const filePath = commandContext.uri.fsPath
-				const content = await fs.readFile(filePath, "utf8")
-				if (content === checkpointMetadata.content) {
-					throw new Error("文件内容未发生变化")
-				}
-				const workspaceFolder = vscode.workspace.getWorkspaceFolder(commandContext.uri)
-				let diffFilePath = filePath
-				if (workspaceFolder) {
-					diffFilePath = path.relative(workspaceFolder?.uri.fsPath, filePath)
-				}
-				selectedText = createTwoFilesPatch(
-					diffFilePath,
-					diffFilePath,
-					checkpointMetadata.content,
-					content,
-					"",
-					"",
-					{ context: 0 },
-				)
 			}
 		} catch (error) {
 			// 回退到原有的 getTaskBlockContent 逻辑
-			//selectedText = await getTaskBlockContent(commandContext)
+			// selectedText = await getTaskBlockContent(commandContext, args)
 			console.log(
 				"CoworkflowCommands: 获取文件差异失败，回退到原有逻辑:",
 				error instanceof Error ? error.message : String(error),
@@ -462,7 +468,7 @@ async function handleUpdateSection(codeLens: CoworkflowCodeLens): Promise<void> 
 /**
  * Handle run task command
  */
-async function handleRunTask(codeLens: CoworkflowCodeLens): Promise<void> {
+async function handleRunTask(codeLens: CoworkflowCodeLens, args?: any): Promise<void> {
 	try {
 		// Validate CodeLens parameter
 		if (!codeLens) {
@@ -480,7 +486,8 @@ async function handleRunTask(codeLens: CoworkflowCodeLens): Promise<void> {
 		const commandContext = createCommandContext(codeLens)
 		// Get required parameters for prompt
 		const scope = getScopePath(commandContext.uri)
-		const selectedText = await getTaskBlockContent(commandContext)
+		// 传递 args 参数
+		const selectedText = await getTaskBlockContent(commandContext, args)
 
 		// Create the prompt using supportPrompt
 		await ClineProvider.handleWorkflowAction(
@@ -500,7 +507,7 @@ async function handleRunTask(codeLens: CoworkflowCodeLens): Promise<void> {
 /**
  * Handle run all tasks command
  */
-async function handleRunAllTasks(codeLens: CoworkflowCodeLens): Promise<void> {
+async function handleRunAllTasks(codeLens: CoworkflowCodeLens, args?: any): Promise<void> {
 	try {
 		// Validate CodeLens parameter
 		if (!codeLens) {
@@ -518,7 +525,19 @@ async function handleRunAllTasks(codeLens: CoworkflowCodeLens): Promise<void> {
 		const commandContext = createCommandContext(codeLens)
 		const scope = getScopePath(commandContext.uri)
 
-		const allTasksContent = await fs.readFile(commandContext.uri.fsPath, "utf8")
+		// 检查 JetBrains 参数中是否有 allTasksContent
+		let allTasksContent: string
+		try {
+			const params = args?.[0]?.[0]
+			if (params && params.allTasksContent) {
+				allTasksContent = params.allTasksContent
+			} else {
+				allTasksContent = await fs.readFile(commandContext.uri.fsPath, "utf8")
+			}
+		} catch (error) {
+			// 回退到读取文件
+			allTasksContent = await fs.readFile(commandContext.uri.fsPath, "utf8")
+		}
 
 		// Create the prompt using supportPrompt
 		await ClineProvider.handleWorkflowAction(
@@ -538,7 +557,7 @@ async function handleRunAllTasks(codeLens: CoworkflowCodeLens): Promise<void> {
 /**
  * Handle retry task command
  */
-async function handleRetryTask(codeLens: CoworkflowCodeLens): Promise<void> {
+async function handleRetryTask(codeLens: CoworkflowCodeLens, args?: any): Promise<void> {
 	try {
 		// Validate CodeLens parameter
 		if (!codeLens) {
@@ -557,7 +576,8 @@ async function handleRetryTask(codeLens: CoworkflowCodeLens): Promise<void> {
 
 		// Get required parameters for prompt
 		const scope = getScopePath(commandContext.uri)
-		const selectedText = await getTaskBlockContent(commandContext)
+		// 传递 args 参数
+		const selectedText = await getTaskBlockContent(commandContext, args)
 		// // Create the prompt using supportPrompt
 		await ClineProvider.handleWorkflowAction(
 			"WORKFLOW_TASK_RETRY",
@@ -576,7 +596,7 @@ async function handleRetryTask(codeLens: CoworkflowCodeLens): Promise<void> {
 /**
  * Handle run test command
  */
-async function handleRunTest(codeLens: CoworkflowCodeLens): Promise<void> {
+async function handleRunTest(codeLens: CoworkflowCodeLens, args?: any): Promise<void> {
 	try {
 		// Validate CodeLens parameter
 		if (!codeLens) {
@@ -593,15 +613,26 @@ async function handleRunTest(codeLens: CoworkflowCodeLens): Promise<void> {
 
 		const commandContext = createCommandContext(codeLens)
 		// Get required parameters for prompt
-		const scope = getScopePath(commandContext.uri)
-		// const selectedText = await getTaskBlockContent(commandContext)
+		let scope = getScopePath(commandContext.uri)
+
+		// 检查 JetBrains 参数中是否有 scopePath
+		try {
+			const params = args?.[0]?.[0]
+			if (params && params.scopePath) {
+				scope = params.scopePath
+			}
+		} catch (error) {
+			// 使用默认 scope
+		}
+
+		const selectedText = await getTaskBlockContent(commandContext, args)
 
 		// Create the prompt using supportPrompt
 		await ClineProvider.handleWorkflowAction(
 			"WORKFLOW_TASK_RUN_TESTS",
 			{
 				scope,
-				// selectedText,
+				selectedText,
 				mode: testMode,
 			},
 			testMode,
@@ -856,7 +887,8 @@ async function runTaskJetbrains(args: any) {
 		context: { lineNumber },
 	})
 
-	await handleRunTask(codeLens)
+	// 传递 args 参数
+	await handleRunTask(codeLens, args)
 }
 
 async function runAllTasksJetbrains(args: any) {
@@ -880,7 +912,8 @@ async function runAllTasksJetbrains(args: any) {
 		range: range,
 	})
 
-	await handleRunAllTasks(codeLens)
+	// 传递 args 参数
+	await handleRunAllTasks(codeLens, args)
 }
 
 async function retryTaskJetbrains(args: any) {
@@ -905,7 +938,8 @@ async function retryTaskJetbrains(args: any) {
 		context: { lineNumber },
 	})
 
-	await handleRetryTask(codeLens)
+	// 传递 args 参数
+	await handleRetryTask(codeLens, args)
 }
 
 async function syncToDesignJetbrains(args: any) {
@@ -936,7 +970,8 @@ async function syncToDesignJetbrains(args: any) {
 		context: { lineNumber },
 	}
 
-	await handleUpdateSection(codeLens)
+	// 传递 args 参数
+	await handleUpdateSection(codeLens, args)
 }
 
 async function syncToTasksJetbrains(args: any) {
@@ -967,7 +1002,8 @@ async function syncToTasksJetbrains(args: any) {
 		context: { lineNumber },
 	}
 
-	await handleUpdateSection(codeLens)
+	// 传递 args 参数
+	await handleUpdateSection(codeLens, args)
 }
 
 async function runTestJetbrains(args: any) {
@@ -994,5 +1030,6 @@ async function runTestJetbrains(args: any) {
 		context: { lineNumber },
 	}
 
-	await handleRunTest(codeLens)
+	// 传递 args 参数
+	await handleRunTest(codeLens, args)
 }
