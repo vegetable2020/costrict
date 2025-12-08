@@ -79,18 +79,24 @@ describe("RooTips Component", () => {
 		})
 
 		test("renders provider cards with correct styling", () => {
-			// 验证 Vibe 和 Spec 模式卡片
-			const vibeText = screen.getByText("Vibe")
-			const specText = screen.getByText("Strict")
+			// 验证 Vibe 和 Spec 模式卡片 - 使用更具体的选择器避免匹配到分隔线标题
+			const vibeCard = document.querySelector("div[class*='w-full'][class*='border'] div[class*='font-bold']")
+			const specCard = document.querySelector(
+				"div[class*='w-[calc(50%-0.5rem)]'][class*='border'] div[class*='font-bold']",
+			)
+
+			// 验证文本内容
+			expect(vibeCard?.textContent).toContain("Vibe")
+			expect(specCard?.textContent).toContain("Spec")
 
 			// 获取包含卡片样式的父容器
-			const vibeCard = vibeText.closest(".border")
-			const specCard = specText.closest(".border")
+			const vibeCardContainer = vibeCard?.closest(".border")
+			const specCardContainer = specCard?.closest(".border")
 
-			expect(vibeCard).toBeInTheDocument()
-			expect(specCard).toBeInTheDocument()
-			expect(vibeCard).toHaveClass("border", "border-vscode-panel-border", "cursor-pointer", "w-full")
-			expect(specCard).toHaveClass("border", "border-vscode-panel-border", "cursor-pointer")
+			expect(vibeCardContainer).toBeInTheDocument()
+			expect(specCardContainer).toBeInTheDocument()
+			expect(vibeCardContainer).toHaveClass("border", "border-vscode-panel-border", "cursor-pointer", "w-full")
+			expect(specCardContainer).toHaveClass("border", "border-vscode-panel-border", "cursor-pointer")
 		})
 
 		test("renders tip cards", () => {

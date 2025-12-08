@@ -136,6 +136,19 @@ const RooTips = () => {
 			align: "center",
 		},
 		{
+			name: "Plan",
+			slug: "plan",
+			description: tWelcome("plan.description"),
+			switchMode: (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
+				e.stopPropagation()
+				if (!apiProviderCheck("zgsm")) {
+					return
+				}
+				switchMode("plan", "plan")
+			},
+			layout: "half",
+		},
+		{
 			name: "Spec",
 			slug: "strict",
 			description: tWelcome("strict.description"),
@@ -145,19 +158,6 @@ const RooTips = () => {
 					return
 				}
 				switchMode("strict")
-			},
-			layout: "half",
-		},
-		{
-			name: "Plan",
-			slug: "plan",
-			description: "严肃编程，适用于增量开发。",
-			switchMode: (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
-				e.stopPropagation()
-				if (!apiProviderCheck("zgsm")) {
-					return
-				}
-				switchMode("plan", "plan")
 			},
 			layout: "half",
 		},

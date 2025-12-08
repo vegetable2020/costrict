@@ -197,7 +197,7 @@ const WORKFLOW_MODES: readonly modelType[] = [
 		groups: ["read", "edit", "command"],
 		source: "project",
 		// workflow: true,
-		zgsmCodeModeGroup: "strict",
+		zgsmCodeModeGroup: "strict,plan",
 		apiProvider: "zgsm",
 	},
 	{
@@ -209,7 +209,7 @@ const WORKFLOW_MODES: readonly modelType[] = [
 		groups: ["read", "edit", "command"],
 		source: "project",
 		// workflow: true,
-		zgsmCodeModeGroup: "strict",
+		zgsmCodeModeGroup: "strict,plan",
 		apiProvider: "zgsm",
 	},
 	{
@@ -255,8 +255,6 @@ const WORKFLOW_MODES: readonly modelType[] = [
  * DEFAULT_MODES
  */
 export const DEFAULT_MODES: readonly modelType[] = [
-	// workflow customModes
-	...WORKFLOW_MODES,
 	{
 		slug: "code",
 		name: "💻 Code",
@@ -331,4 +329,6 @@ export const DEFAULT_MODES: readonly modelType[] = [
 		// workflow: false,
 		apiProvider: "zgsm",
 	},
+	// workflow customModes
+	...WORKFLOW_MODES,
 ] as const
