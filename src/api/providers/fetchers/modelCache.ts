@@ -73,11 +73,8 @@ async function fetchModelsFromProvider(options: GetModelsOptions): Promise<Model
 
 	switch (provider) {
 		case "zgsm": {
-			const { zgsmBaseUrl } = await ZgsmAuthApi.getInstance().getApiConfiguration()
-			const baseUrl = zgsmBaseUrl || ZgsmAuthConfig.getInstance().getDefaultApiBaseUrl()
-
 			const _models = await getZgsmModels(
-				options.baseUrl || baseUrl,
+				options.baseUrl || ZgsmAuthConfig.getInstance().getDefaultApiBaseUrl(),
 				options.apiKey || clineProvider?.getValue("zgsmAccessToken"),
 				options.openAiHeaders,
 			)
@@ -303,14 +300,21 @@ export async function initializeModelCacheRefresh(): Promise<void> {
  * @param router - The router to flush models for.
  * @param refresh - If true, immediately fetch fresh data from API
  */
-export const flushModels = async (router: RouterName, refresh: boolean = false): Promise<void> => {
+export const flushModels = async (
+	router: RouterName,
+	refresh: boolean = false,
+	opt?: GetModelsOptions,
+	cb?: (v: any) => void,
+): Promise<void> => {
 	if (refresh) {
 		// Don't delete memory cache - let refreshModels atomically replace it
 		// This prevents a race condition where getModels() might be called
 		// before refresh completes, avoiding a gap in cache availability
-		refreshModels({ provider: router } as GetModelsOptions).catch((error) => {
+		try {
+			await refreshModels({ ...opt, provider: router } as GetModelsOptions).then(cb)
+		} catch (error) {
 			console.error(`[flushModels] Refresh failed for ${router}:`, error)
-		})
+		}
 	} else {
 		// Only delete memory cache when not refreshing
 		memoryCache.del(router)
