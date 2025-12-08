@@ -79,18 +79,18 @@ describe("RooTips Component", () => {
 		})
 
 		test("renders provider cards with correct styling", () => {
-			// 验证 Vibe 和 Strict 模式卡片
+			// 验证 Vibe 和 Spec 模式卡片
 			const vibeText = screen.getByText("Vibe")
-			const strictText = screen.getByText("Strict")
+			const specText = screen.getByText("Strict")
 
 			// 获取包含卡片样式的父容器
-			const vibeCard = vibeText.closest(".flex-1")
-			const strictCard = strictText.closest(".flex-1")
+			const vibeCard = vibeText.closest(".border")
+			const specCard = specText.closest(".border")
 
 			expect(vibeCard).toBeInTheDocument()
-			expect(strictCard).toBeInTheDocument()
-			expect(vibeCard).toHaveClass("flex-1", "border", "border-vscode-panel-border", "cursor-pointer")
-			expect(strictCard).toHaveClass("flex-1", "border", "border-vscode-panel-border", "cursor-pointer")
+			expect(specCard).toBeInTheDocument()
+			expect(vibeCard).toHaveClass("border", "border-vscode-panel-border", "cursor-pointer", "w-full")
+			expect(specCard).toHaveClass("border", "border-vscode-panel-border", "cursor-pointer")
 		})
 
 		test("renders tip cards", () => {

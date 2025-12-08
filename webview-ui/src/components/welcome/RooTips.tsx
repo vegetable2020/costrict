@@ -51,16 +51,19 @@ const RooTips = () => {
 
 	const tips = [
 		{
-			icon: "codicon-book",
+			// icon: "codicon-book",
 			click: (e: any) => {
 				e.preventDefault()
 				if (!apiProviderCheck("zgsm")) {
 					return
 				}
-				vscode.postMessage({
-					type: "mode",
-					text: "code",
-				})
+
+				switchMode("vibe", "code")
+
+				// vscode.postMessage({
+				// 	type: "mode",
+				// 	text: "code",
+				// })
 				delay(() => {
 					vscode.postMessage({
 						type: "newTask",
@@ -75,7 +78,7 @@ const RooTips = () => {
 			descriptionKey: "rooTips.projectWiki.description",
 		},
 		{
-			icon: "codicon-book",
+			// icon: "codicon-book",
 			click: (e: any) => {
 				e.preventDefault()
 				if (!apiProviderCheck("zgsm")) {
@@ -96,7 +99,7 @@ const RooTips = () => {
 			descriptionKey: "rooTips.testGuide.description",
 		},
 		{
-			icon: "codicon-debug-all",
+			// icon: "codicon-debug-all",
 			click: (e?: any) => {
 				e?.preventDefault()
 				vscode.postMessage({
@@ -126,11 +129,13 @@ const RooTips = () => {
 				e.stopPropagation()
 				switchMode("vibe")
 			},
+			layout: "full", // 独占一行
 		},
 		{
 			name: "Strict",
 			slug: "strict",
-			description: tWelcome("strict.description"),
+			description: "1.需求理解\n2.架构设计\n3.任务分解",
+			// description: tWelcome("strict.description"),
 			switchMode: (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
 				e.stopPropagation()
 				if (!apiProviderCheck("zgsm")) {
@@ -138,24 +143,53 @@ const RooTips = () => {
 				}
 				switchMode("strict")
 			},
+			layout: "half", // 占半行
+		},
+		{
+			name: "Plan",
+			slug: "plan",
+			// description: tWelcome("strict.description"),
+			description: "1.plan\n2.apply\n3.archive",
+			switchMode: (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
+				e.stopPropagation()
+				if (!apiProviderCheck("zgsm")) {
+					return
+				}
+				switchMode("plan", "plan")
+			},
+			layout: "half", // 占半行
 		},
 	]
 
 	return (
 		<div className="relative">
 			<SectionDivider title={tWelcome("developmentMode")} icon="codicon-settings-gear" />
-			<div className="flex flex-row sm:flex-row gap-4">
-				{providers.map((provider, index) => (
-					<div
-						key={`${index}${provider.slug}`}
-						onClick={provider.switchMode}
-						className={`flex-1 border border-vscode-panel-border hover:bg-secondary rounded-md py-3 px-4 flex flex-row gap-3 cursor-pointer transition-all no-underline text-inherit ${zgsmCodeMode === provider.slug ? "border border-vscode-focusBorder outline outline-vscode-focusBorder focus-visible:ring-vscode-focusBorder" : ""}`}>
-						<div>
-							<div className="text-base font-bold text-vscode-foreground">{provider.name}</div>
-							<div className="text-sm text-vscode-descriptionForeground">{provider.description}</div>
+			<div className="flex flex-row flex-wrap gap-4">
+				{providers.map((provider, index) => {
+					const isFull = provider.layout === "full"
+					const isHalf = provider.layout === "half"
+
+					return (
+						<div
+							key={`${index}${provider.slug}`}
+							onClick={provider.switchMode}
+							className={[
+								"inline-flex border border-vscode-panel-border hover:bg-secondary rounded-md py-3 px-4 flex-row gap-3 cursor-pointer transition-all no-underline text-inherit",
+								zgsmCodeMode === provider.slug
+									? "border border-vscode-focusBorder outline outline-vscode-focusBorder focus-visible:ring-vscode-focusBorder"
+									: "",
+								isFull ? "w-full" : "",
+								isHalf ? "w-[calc(50%-0.5rem)]" : "",
+							]
+								.filter(Boolean)
+								.join(" ")}>
+							<div>
+								<div className="text-base font-bold text-vscode-foreground">{provider.name}</div>
+								<div className="text-sm text-vscode-descriptionForeground">{provider.description}</div>
+							</div>
 						</div>
-					</div>
-				))}
+					)
+				})}
 			</div>
 			<SectionDivider title={tWelcome("commonFeatures")} icon="codicon-tools" />
 			<div className="flex flex-wrap gap-4">
