@@ -2,7 +2,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "
 import { useSize } from "react-use"
 import { useTranslation, Trans } from "react-i18next"
 import deepEqual from "fast-deep-equal"
-import { VSCodeBadge } from "@vscode/webview-ui-toolkit/react"
+import { VSCodeBadge, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react"
 import { type SearchResult } from "./hooks/useChatSearch"
 import type { ClineMessage, FollowUpData, SuggestionItem } from "@roo-code/types"
 import { Mode } from "@roo/modes"
@@ -443,10 +443,15 @@ export const ChatRowContent = ({
 
 	const multipleChoiceData = useMemo(() => {
 		if (message.type === "ask" && message.ask === "multiple_choice" && !message.partial) {
-			return safeJsonParse<import("@roo-code/types").MultipleChoiceData>(message.text)
+		const data = safeJsonParse<import("@roo-code/types").MultipleChoiceData>(message.text)
+		// Costrict: Merge saved user response for display on reload
+		if (data && message.userResponse) {
+			data.userResponse = message.userResponse as import("@roo-code/types").MultipleChoiceResponse
+		}
+		return data
 		}
 		return null
-	}, [message.type, message.ask, message.partial, message.text])
+	}, [message.type, message.ask, message.partial, message.text, message.userResponse])
 
 	const handleCopyErrorDetail = useCallback(
 		(message: string) => {
@@ -1827,26 +1832,33 @@ export const ChatRowContent = ({
 						</div>
 					</>
 				)
-			case "multiple_choice":
-				return (
-					<>
-						{title && (
-							<div style={headerStyle}>
-								{icon}
-								{title}
+		case "multiple_choice":
+			return (
+				<>
+					{title && (
+						<div style={headerStyle}>
+							{icon}
+							{title}
+						</div>
+					)}
+					<div className="flex flex-col gap-2 ml-6">
+						{message.partial ? (
+							<div className="flex items-center gap-2 py-2 text-vscode-descriptionForeground">
+								<VSCodeProgressRing className="size-4" />
+								<span className="text-sm">{t("chat:multipleChoice.loading")}</span>
 							</div>
-						)}
-						<div className="flex flex-col gap-2 ml-6">
-							{multipleChoiceData && onMultipleChoiceSubmit && (
+						) : (
+							multipleChoiceData && onMultipleChoiceSubmit && (
 								<MultipleChoiceForm
 									data={multipleChoiceData}
 									onSubmit={onMultipleChoiceSubmit}
 									isAnswered={isMultipleChoiceAnswered}
 								/>
-							)}
-						</div>
-					</>
-				)
+							)
+						)}
+					</div>
+				</>
+			)
 			case "auto_approval_max_req_reached": {
 					return <AutoApprovedRequestLimitWarning message={message} />
 			}
