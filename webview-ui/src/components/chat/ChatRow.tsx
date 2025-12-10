@@ -4,7 +4,13 @@ import { useTranslation, Trans } from "react-i18next"
 import deepEqual from "fast-deep-equal"
 import { VSCodeBadge, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react"
 import { type SearchResult } from "./hooks/useChatSearch"
-import type { ClineMessage, FollowUpData, SuggestionItem } from "@roo-code/types"
+import type {
+	ClineMessage,
+	FollowUpData,
+	MultipleChoiceData,
+	MultipleChoiceResponse,
+	SuggestionItem,
+} from "@roo-code/types"
 import { Mode } from "@roo/modes"
 
 import { ClineApiReqInfo, ClineAskUseMcpServer, ClineSayTool } from "@roo/ExtensionMessage"
@@ -114,10 +120,9 @@ interface ChatRowProps {
 	onToggleExpand: (ts: number) => void
 	onHeightChange: (isTaller: boolean) => void
 	onSuggestionClick?: (suggestion: SuggestionItem, event?: React.MouseEvent) => void
-	onMultipleChoiceSubmit?: (response: import("@roo-code/types").MultipleChoiceResponse) => void
+	onMultipleChoiceSubmit?: (response: MultipleChoiceResponse) => void
 	onBatchFileResponse?: (response: { [key: string]: boolean }) => void
 	onFollowUpUnmount?: () => void
-	// isFollowUpAnswered?: boolean
 	isFollowUpAnswered?: boolean
 	isMultipleChoiceAnswered?: boolean
 	editable?: boolean
@@ -390,18 +395,20 @@ export const ChatRowContent = ({
 						<span style={{ color: normalColor }}>{t("chat:apiRequest.streaming")}</span>
 					),
 				]
-		case "followup":
-			return [
-				<MessageCircleQuestionMark className="w-4 shrink-0" aria-label="Question icon" />,
-				<span style={{ color: normalColor, fontWeight: "bold" }}>{t("chat:questions.hasQuestion")}</span>,
-			]
-		case "multiple_choice":
-			return [
-				<MessageCircleQuestionMark className="w-4 shrink-0" aria-label="Multiple choice question icon" />,
-				<span style={{ color: normalColor, fontWeight: "bold" }}>{t("chat:multipleChoice.headerTitle")}</span>,
-			]
-		default:
-			return [null, null]
+			case "followup":
+				return [
+					<MessageCircleQuestionMark className="w-4 shrink-0" aria-label="Question icon" />,
+					<span style={{ color: normalColor, fontWeight: "bold" }}>{t("chat:questions.hasQuestion")}</span>,
+				]
+			case "multiple_choice":
+				return [
+					<MessageCircleQuestionMark className="w-4 shrink-0" aria-label="Multiple choice question icon" />,
+					<span style={{ color: normalColor, fontWeight: "bold" }}>
+						{t("chat:multipleChoice.headerTitle")}
+					</span>,
+				]
+			default:
+				return [null, null]
 		}
 	}, [
 		type,
@@ -443,12 +450,12 @@ export const ChatRowContent = ({
 
 	const multipleChoiceData = useMemo(() => {
 		if (message.type === "ask" && message.ask === "multiple_choice" && !message.partial) {
-		const data = safeJsonParse<import("@roo-code/types").MultipleChoiceData>(message.text)
-		// Costrict: Merge saved user response for display on reload
-		if (data && message.userResponse) {
-			data.userResponse = message.userResponse as import("@roo-code/types").MultipleChoiceResponse
-		}
-		return data
+			const data = safeJsonParse<MultipleChoiceData>(message.text)
+			// Costrict: Merge saved user response for display on reload
+			if (data && message.userResponse) {
+				data.userResponse = message.userResponse as MultipleChoiceResponse
+			}
+			return data
 		}
 		return null
 	}, [message.type, message.ask, message.partial, message.text, message.userResponse])
@@ -1808,62 +1815,65 @@ export const ChatRowContent = ({
 					} else {
 						return null // Don't render anything when we get a completion_result ask without text
 					}
-			case "followup":
-				return (
-					<>
-						{title && (
-							<div style={headerStyle}>
-								{icon}
-								{title}
-							</div>
-						)}
-						<div className="flex flex-col gap-2 ml-6">
-							<Markdown
-								markdown={message.partial === true ? message?.text : followUpData?.question}
-							/>
-							<FollowUpSuggest
-								suggestions={followUpData?.suggest}
-								onSuggestionClick={onSuggestionClick}
-								ts={message?.ts}
-								onCancelAutoApproval={onFollowUpUnmount}
-								isAnswered={isFollowUpAnswered}
-								// isAnswered={isFollowUpAnswered}
-							/>
-						</div>
-					</>
-				)
-		case "multiple_choice":
-			return (
-				<>
-					{title && (
-						<div style={headerStyle}>
-							{icon}
-							{title}
-						</div>
-					)}
-					<div className="flex flex-col gap-2 ml-6">
-						{message.partial ? (
-							<div className="flex items-center gap-2 py-2 text-vscode-descriptionForeground">
-								<VSCodeProgressRing className="size-4" />
-								<span className="text-sm">{t("chat:multipleChoice.loading")}</span>
-							</div>
-						) : (
-							multipleChoiceData && onMultipleChoiceSubmit && (
-								<MultipleChoiceForm
-									data={multipleChoiceData}
-									onSubmit={onMultipleChoiceSubmit}
-									isAnswered={isMultipleChoiceAnswered}
+				case "followup":
+					return (
+						<>
+							{title && (
+								<div style={headerStyle}>
+									{icon}
+									{title}
+								</div>
+							)}
+							<div className="flex flex-col gap-2 ml-6">
+								<Markdown
+									markdown={message.partial === true ? message?.text : followUpData?.question}
 								/>
-							)
-						)}
-					</div>
-				</>
-			)
-			case "auto_approval_max_req_reached": {
+								<FollowUpSuggest
+									suggestions={followUpData?.suggest}
+									onSuggestionClick={onSuggestionClick}
+									ts={message?.ts}
+									onCancelAutoApproval={onFollowUpUnmount}
+									isAnswered={isFollowUpAnswered}
+								/>
+							</div>
+						</>
+					)
+				case "multiple_choice":
+					if (message.text) {
+						return null
+					}
+					return (
+						<>
+							{title && (
+								<div style={headerStyle}>
+									{icon}
+									{title}
+								</div>
+							)}
+							<div className="flex flex-col gap-2 ml-6">
+								{message.partial ? (
+									<div className="flex items-center gap-2 py-2 text-vscode-descriptionForeground">
+										<VSCodeProgressRing className="size-4" />
+										<span className="text-sm">{t("chat:multipleChoice.loading")}</span>
+									</div>
+								) : (
+									multipleChoiceData &&
+									onMultipleChoiceSubmit && (
+										<MultipleChoiceForm
+											data={multipleChoiceData}
+											onSubmit={onMultipleChoiceSubmit}
+											isAnswered={isMultipleChoiceAnswered}
+										/>
+									)
+								)}
+							</div>
+						</>
+					)
+				case "auto_approval_max_req_reached": {
 					return <AutoApprovedRequestLimitWarning message={message} />
-			}
-			default:
-				return null
+				}
+				default:
+					return null
 			}
 	}
 }

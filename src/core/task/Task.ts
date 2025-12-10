@@ -1303,10 +1303,11 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				this.clineMessages,
 				(msg) => msg.type === "ask" && msg.ask === "followup" && !msg.isAnswered,
 			)
-
 			if (lastFollowUpIndex !== -1) {
-				// Mark this follow-up as answered
-				this.clineMessages[lastFollowUpIndex].isAnswered = true
+				// // Mark this follow-up as answered
+				this.clineMessages
+					.filter((msg) => msg.type === "ask" && msg.ask === "followup")
+					.forEach((msg) => (msg.isAnswered = true))
 				// Save the updated messages
 				this.saveClineMessages().catch((error) => {
 					console.error("Failed to save answered follow-up state:", error)
@@ -1330,9 +1331,16 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			}
 			if (!parsed.__skipped && Object.keys(parsed).length === 0) return
 
-			const message = this.clineMessages[idx]
-			message.isAnswered = true
-			message.userResponse = parsed
+			this.clineMessages
+				.filter((msg) => msg.type === "ask" && msg.ask === "multiple_choice")
+				.reverse()
+				.forEach((msg, index) => {
+					msg.isAnswered = true
+					if (index === 0) {
+						msg.userResponse = parsed
+					}
+				})
+
 			this.saveClineMessages().catch((e) => console.error("Failed to save multiple choice state:", e))
 		}
 	}

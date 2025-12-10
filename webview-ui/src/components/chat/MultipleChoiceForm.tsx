@@ -14,7 +14,7 @@ export const MultipleChoiceForm = ({ data, onSubmit, isAnswered = false }: Multi
 	const { t } = useAppTranslation()
 	const [selections, setSelections] = useState<MultipleChoiceResponse>(data.userResponse || {})
 	const [submitted, setSubmitted] = useState(isAnswered)
-	const [collapsed, setCollapsed] = useState(false)
+	const [collapsed, setCollapsed] = useState(isAnswered)
 
 	// Initialize submitAction based on existing userResponse
 	const getInitialSubmitAction = (): "confirm" | "skip" | null => {
@@ -101,9 +101,9 @@ export const MultipleChoiceForm = ({ data, onSubmit, isAnswered = false }: Multi
 			<div
 				className={cn(
 					"flex items-center gap-2 px-4 py-2.5 transition-colors border-b border-vscode-panel-border/30",
-					!submitted && "cursor-pointer hover:bg-vscode-list-hoverBackground",
+					"cursor-pointer hover:bg-vscode-list-hoverBackground",
 				)}
-				onClick={submitted ? undefined : toggleCollapse}>
+				onClick={toggleCollapse}>
 				<i
 					className={cn(
 						"codicon text-[12px] text-vscode-descriptionForeground transition-transform",

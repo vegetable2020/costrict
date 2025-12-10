@@ -190,7 +190,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	// const autoApproveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const followUpAutoApproveTimeoutRef = useRef<number | undefined>()
 	// const userRespondedRef = useRef<boolean>(false)
-	const [currentFollowUpTs, setCurrentFollowUpTs] = useState<number | null>(null)
+	const [currentFollowUpTs, setCurrentFollowUpTs] = useState<number>(-1)
 
 	const clineAskRef = useRef(clineAsk)
 	useEffect(() => {
@@ -289,25 +289,25 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							setPrimaryButtonText(t("chat:proceedAnyways.title"))
 							setSecondaryButtonText(t("chat:startNewTask.title"))
 							break
-				        case "followup":
-				        	setSendingDisabled(isPartial)
-				        	setClineAsk("followup")
-				        	// setting enable buttons to `false` would trigger a focus grab when
-				        	// the text area is enabled which is undesirable.
-				        	// We have no buttons for this tool, so no problem having them "enabled"
-				        	// to workaround this issue.  See #1358.
-				        	setEnableButtons(true)
-				        	setPrimaryButtonText(undefined)
-				        	setSecondaryButtonText(undefined)
-				        	break
-				        // Costrict: ask_multiple_choice tool	
-				        case "multiple_choice":
-				        	setSendingDisabled(isPartial)
-				        	setClineAsk("multiple_choice")
-				        	setEnableButtons(true)
-				        	setPrimaryButtonText(undefined)
-				        	setSecondaryButtonText(undefined)
-				        	break
+						case "followup":
+							setSendingDisabled(isPartial)
+							setClineAsk("followup")
+							// setting enable buttons to `false` would trigger a focus grab when
+							// the text area is enabled which is undesirable.
+							// We have no buttons for this tool, so no problem having them "enabled"
+							// to workaround this issue.  See #1358.
+							setEnableButtons(true)
+							setPrimaryButtonText(undefined)
+							setSecondaryButtonText(undefined)
+							break
+						// Costrict: ask_multiple_choice tool
+						case "multiple_choice":
+							setSendingDisabled(isPartial)
+							setClineAsk("multiple_choice")
+							setEnableButtons(true)
+							setPrimaryButtonText(undefined)
+							setSecondaryButtonText(undefined)
+							break
 						case "tool":
 							setSendingDisabled(isPartial)
 							setClineAsk("tool")
@@ -470,7 +470,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		// Reset UI states only when task changes
 		setExpandedRows({})
 		everVisibleMessagesTsRef.current.clear() // Clear for new task
-		setCurrentFollowUpTs(null) // Clear follow-up answered state for new task
+		setCurrentFollowUpTs(-1) // Clear follow-up answered state for new task
 		setIsCondensing(false) // Reset condensing state when switching tasks
 		// Note: sendingDisabled is not reset here as it's managed by message effects
 
@@ -563,7 +563,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	}, [modifiedMessages, clineAsk, enableButtons, primaryButtonText])
 
 	const markFollowUpAsAnswered = useCallback(() => {
-		const lastFollowUpMessage = messagesRef.current.findLast((msg: ClineMessage) => msg.ask === "followup")
+		const lastFollowUpMessage = messagesRef.current.findLast((msg: ClineMessage) =>
+			["followup", "multiple_choice"].includes(msg.ask!),
+		)
 		if (lastFollowUpMessage) {
 			setCurrentFollowUpTs(lastFollowUpMessage.ts)
 		}
@@ -624,17 +626,17 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					switch (
 						clineAskRef.current // Use clineAskRef.current
 					) {
-					case "followup":
-					case "multiple_choice":
-					case "tool":
-					case "browser_action_launch":
-					case "command": // User can provide feedback to a tool or command use.
-					case "command_output": // User can send input to command stdin.
-					case "use_mcp_server":
-					case "completion_result": // If this happens then the user has feedback for the completion result.
-					case "resume_task":
-					case "resume_completed_task":
-					case "mistake_limit_reached":
+						case "followup":
+						case "multiple_choice":
+						case "tool":
+						case "browser_action_launch":
+						case "command": // User can provide feedback to a tool or command use.
+						case "command_output": // User can send input to command stdin.
+						case "use_mcp_server":
+						case "completion_result": // If this happens then the user has feedback for the completion result.
+						case "resume_task":
+						case "resume_completed_task":
+						case "mistake_limit_reached":
 							vscode.postMessage({
 								type: "askResponse",
 								askResponse: "messageResponse",
@@ -1394,16 +1396,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					onMultipleChoiceSubmit={handleMultipleChoiceSubmit}
 					onBatchFileResponse={handleBatchFileResponse}
 					onFollowUpUnmount={handleFollowUpUnmount}
-					isFollowUpAnswered={
-						primaryButtonText === t("chat:resumeTask.title") ||
-						primaryButtonText === t("chat:cancel.title") ||
-						primaryButtonText === t("chat:startNewTask.title") ||
-						(currentFollowUpTs != null && messageOrGroup.ts <= currentFollowUpTs)
+					isFollowUpAnswered={messageOrGroup.isAnswered === true || messageOrGroup.ts <= currentFollowUpTs}
+					// Costrict: ask_multiple_choice answered
+					isMultipleChoiceAnswered={
+						messageOrGroup.isAnswered === true || messageOrGroup.ts <= currentFollowUpTs
 					}
-				// Costrict: ask_multiple_choice answered
-				isMultipleChoiceAnswered={
-					messageOrGroup.isAnswered === true
-				}
 					editable={
 						messageOrGroup.type === "ask" &&
 						messageOrGroup.ask === "tool" &&
@@ -1441,7 +1438,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			handleFollowUpUnmount,
 			handleMultipleChoiceSubmit,
 			primaryButtonText,
-			t,
 			currentFollowUpTs,
 			shouldHighlight,
 			searchResults,

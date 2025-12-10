@@ -135,17 +135,14 @@ export class AskMultipleChoiceTool extends BaseTool<"ask_multiple_choice"> {
 				await task.say("error", `Failed to parse user response: ${(error as Error).message}`)
 			}
 
-		// Check if user skipped the questionnaire
-		if ("__skipped" in userResponse && userResponse.__skipped) {
-			await task.say("user_feedback", t("tools:multipleChoice.userSkippedMessage"), images)
-			pushToolResult(
-				formatResponse.toolResult(
-					"<answer>User chose to skip this questionnaire</answer>",
-					images,
-				),
-			)
-			return
-		}
+			// Check if user skipped the questionnaire
+			if ("__skipped" in userResponse && userResponse.__skipped) {
+				await task.say("user_feedback", t("tools:multipleChoice.userSkippedMessage"), images)
+				pushToolResult(
+					formatResponse.toolResult("<answer>User chose to skip this questionnaire</answer>", images),
+				)
+				return
+			}
 
 			// Format response for LLM
 			const responseLines: string[] = ["<answers>"]
@@ -158,10 +155,9 @@ export class AskMultipleChoiceTool extends BaseTool<"ask_multiple_choice"> {
 					})
 					.join(", ")
 
-				responseLines.push(`<answer>`)
-				responseLines.push(`<question_id>${question.id}</question_id>`)
-				responseLines.push(`<selected_options>${selectedLabels || "No selection"}</selected_options>`)
-				responseLines.push(`</answer>`)
+				responseLines.push(
+					`<answer><question_id>${question.id}</question_id><selected_options>${selectedLabels || "No selection"}</selected_options></answer>`,
+				)
 			}
 			responseLines.push("</answers>")
 
@@ -184,4 +180,3 @@ export class AskMultipleChoiceTool extends BaseTool<"ask_multiple_choice"> {
 }
 
 export const askMultipleChoiceTool = new AskMultipleChoiceTool()
-
