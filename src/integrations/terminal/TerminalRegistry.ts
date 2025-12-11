@@ -8,6 +8,7 @@ import { Terminal } from "./Terminal"
 import { ExecaTerminal } from "./ExecaTerminal"
 import { ShellIntegrationManager } from "./ShellIntegrationManager"
 import delay from "delay"
+import { isJetbrainsPlatform } from "../../utils/platform"
 const isWin32 = process.platform === "win32"
 // Although vscode.window.terminals provides a list of all open terminals,
 // there's no way to know whether they're busy or not (exitStatus does not
@@ -146,8 +147,10 @@ export class TerminalRegistry {
 		let newTerminal
 
 		if (provider === "vscode") {
+			vscode.window.showInformationMessage("Unsupported terminal provider: " + provider)
 			newTerminal = new Terminal(this.nextTerminalId++, undefined, cwd)
 		} else {
+			vscode.window.showErrorMessage("Unsupported terminal provider: " + provider)
 			newTerminal = new ExecaTerminal(this.nextTerminalId++, cwd)
 		}
 

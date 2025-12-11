@@ -18,6 +18,7 @@ import { Terminal } from "../../integrations/terminal/Terminal"
 import { Package } from "../../shared/package"
 import { t } from "../../i18n"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
+import { isJetbrainsPlatform } from "../../utils/platform"
 
 class ShellIntegrationError extends Error {}
 
@@ -201,6 +202,7 @@ export async function executeCommandInTerminal(
 	let accumulatedOutput = ""
 	const callbacks: RooTerminalCallbacks = {
 		onLine: async (lines: string, process: RooTerminalProcess) => {
+			vscode.window.showInformationMessage(`onLine: ${new Date()}`)
 			accumulatedOutput += lines
 			const compressedOutput = Terminal.compressTerminalOutput(
 				accumulatedOutput,
@@ -230,6 +232,8 @@ export async function executeCommandInTerminal(
 			}
 		},
 		onCompleted: (output: string | undefined) => {
+			vscode.window.showInformationMessage(`onCompleted: ${new Date()}`)
+
 			result = Terminal.compressTerminalOutput(
 				output ?? "",
 				terminalOutputLineLimit,
@@ -240,15 +244,18 @@ export async function executeCommandInTerminal(
 			completed = true
 		},
 		onShellExecutionStarted: (pid: number | undefined) => {
+			vscode.window.showInformationMessage(`onShellExecutionStarted: ${new Date()}`)
 			const status: CommandExecutionStatus = { executionId, status: "started", pid, command }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
 		},
 		onShellExecutionComplete: (details: ExitCodeDetails) => {
+			vscode.window.showInformationMessage(`onShellExecutionComplete: ${new Date()}`)
 			const status: CommandExecutionStatus = { executionId, status: "exited", exitCode: details.exitCode }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
 			exitDetails = details
 		},
 		triggerUIToProceed: (lines: string, process: RooTerminalProcess) => {
+			vscode.window.showInformationMessage(`triggerUIToProceed: ${new Date()}`)
 			const status: CommandExecutionStatus = { executionId, status: "output", output: "" }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
 			task.ask("command_output", "").catch(() => {
@@ -258,6 +265,8 @@ export async function executeCommandInTerminal(
 	}
 
 	if (terminalProvider === "vscode") {
+		vscode.window.showInformationMessage(`onNoShellIntegration: ${new Date()}`)
+			
 		callbacks.onNoShellIntegration = async (error: string) => {
 			TelemetryService.instance.captureShellIntegrationError(task.taskId)
 			shellIntegrationError = error
