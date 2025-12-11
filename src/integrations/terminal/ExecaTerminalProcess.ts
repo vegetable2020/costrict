@@ -38,17 +38,13 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 
 		try {
 			this.isHot = true
-			const isWin = process.platform === "win32"
-
-			// On Windows, use appropriate encoding command based on shell type
-			let actualCommand = command
 			const shellPath = getShell()
 
-			const opt = {
-				shell: true as string | boolean,
+			this.subprocess = execa({
+				shell: shellPath,
+				// shell: true,
 				cwd: this.terminal.getCurrentWorkingDirectory(),
 				all: true,
-				encoding: "buffer",
 				// Ignore stdin to ensure non-interactive mode and prevent hanging
 				stdin: "ignore",
 				env: {
@@ -57,39 +53,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 					LANG: "en_US.UTF-8",
 					LC_ALL: "en_US.UTF-8",
 				},
-			}
-
-			if (isWin) {
-				const shellName = shellPath.toLowerCase()
-				Object.assign(opt, {
-					shell: shellPath,
-					// encoding: "utf8"
-				})
-				// Check if it's PowerShell (pwsh.exe or powershell.exe)
-				if (shellName.includes("cmd")) {
-					this.subprocess = execa(opt as Options)`chcp 65001 >nul 2>&1 && ${command}`
-				} else if (shellName.includes("powershell") || shellName.includes("pwsh")) {
-					opt.shell = false
-					const psCommand = [
-						"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8",
-						"[Console]::InputEncoding = [System.Text.Encoding]::UTF8",
-						"$env:PYTHONIOENCODING = 'utf-8'",
-						"start-sleep -milliseconds 100",
-						command,
-					].join("; ")
-					this.subprocess = execa(
-						shellPath,
-						["-NoProfile", "-NonInteractive", "-Command", psCommand],
-						opt as Options,
-					)
-				} else {
-					opt.shell = shellPath
-					this.subprocess = execa(opt as Options)`${actualCommand}`
-				}
-			} else {
-				// On non-Windows, ensure UTF-8 encoding for Ruby, CocoaPods, etc.
-				this.subprocess = execa(opt as Options)`${actualCommand}`
-			}
+			})`${command}`
 
 			this.pid = this.subprocess.pid
 
@@ -115,25 +79,13 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 			const rawStream = this.subprocess.iterable({ from: "all", preserveNewlines: true })
 
 			// Wrap the stream to ensure all chunks are strings (execa can return Uint8Array)
-			// On Windows, we need to handle potential encoding issues
 			const stream = (async function* () {
 				for await (const chunk of rawStream) {
-					if (typeof chunk === "string") {
-						yield chunk
-					} else {
-						// For Windows cmd output, try to decode with UTF-8 first
-						// If that fails, fall back to Windows-1252 (common Windows encoding)
-						try {
-							yield new TextDecoder("utf-8", { fatal: true }).decode(chunk)
-						} catch {
-							// Fallback to gbk if UTF-8 decoding fails
-							yield new TextDecoder("gbk", { fatal: false }).decode(chunk)
-						}
-					}
+					yield typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk)
 				}
 			})()
 
-			this.terminal.setActiveStream(stream, this.pid)
+			await this.terminal.setActiveStream(stream, Promise.resolve(this.pid))
 
 			for await (const line of stream) {
 				if (this.aborted) {
@@ -195,7 +147,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 			this.subprocess = undefined
 		}
 
-		this.terminal.setActiveStream(undefined, this.pid)
+		await this.terminal.setActiveStream(undefined, Promise.resolve(this.pid))
 		this.emitRemainingBufferIfListening()
 		this.stopHotTimer()
 		this.emit("completed", this.fullOutput)

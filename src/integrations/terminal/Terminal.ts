@@ -7,17 +7,17 @@ import { TerminalProcess } from "./TerminalProcess"
 import { ShellIntegrationManager } from "./ShellIntegrationManager"
 import { mergePromise } from "./mergePromise"
 import { getExtensionUri } from "../theme/getTheme"
-
 export class Terminal extends BaseTerminal {
 	public terminal: vscode.Terminal
 
 	public cmdCounter: number = 0
+	static assetsDir = getExtensionUri()
 
 	constructor(id: number, terminal: vscode.Terminal | undefined, cwd: string) {
 		super("vscode", id, cwd)
 
 		const env = Terminal.getEnv()
-		const iconPath = vscode.Uri.joinPath(getExtensionUri(), "assets", "costrict", "logo.svg")
+		const iconPath = vscode.Uri.joinPath(Terminal.assetsDir, "assets", "costrict", "logo.svg")
 		this.terminal = terminal ?? vscode.window.createTerminal({ cwd, name: "CoStrict", iconPath, env })
 
 		if (Terminal.getTerminalZdotdir()) {
@@ -158,14 +158,6 @@ export class Terminal extends BaseTerminal {
 			// VTE must be disabled because it prevents the prompt command from executing
 			// See https://wiki.gnome.org/Apps/Terminal/VTE
 			VTE_VERSION: "0",
-		}
-
-		// On Windows, set the console output code page to UTF-8
-		// This helps with proper encoding of command outputs like ipconfig
-		if (process.platform === "win32") {
-			env.PYTHONIOENCODING = "utf-8"
-			// Note: We can't set CHCP directly here as it's a command, not an env var
-			// The actual chcp command will be handled in the terminal execution
 		}
 
 		// Set Oh My Zsh shell integration if enabled

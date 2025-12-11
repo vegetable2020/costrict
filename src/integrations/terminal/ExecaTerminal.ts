@@ -35,6 +35,7 @@ export class ExecaTerminal extends BaseTerminal {
 			process.once("continue", () => resolve())
 			process.once("error", (error) => reject(error))
 			process.run(command)
+			// If the output is empty, we need to trigger the callback manually
 			delay(300).then(() => {
 				if (!isOutputFirstLine) return
 				callbacks?.triggerUIToProceed?.("", process)
