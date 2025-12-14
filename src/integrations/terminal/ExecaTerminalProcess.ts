@@ -11,6 +11,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 	private aborted = false
 	private pid?: number
 	private subprocess?: ReturnType<typeof execa>
+	private shellPath = getShell()
 	private pidUpdatePromise?: Promise<void>
 
 	constructor(terminal: RooTerminal) {
@@ -38,13 +39,11 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 
 		try {
 			this.isHot = true
-			const shellPath = getShell()
-
 			this.subprocess = execa({
-				shell: shellPath,
-				// shell: true,
+				shell: this.shellPath,
 				cwd: this.terminal.getCurrentWorkingDirectory(),
 				all: true,
+				encoding: "buffer",
 				// Ignore stdin to ensure non-interactive mode and prevent hanging
 				stdin: "ignore",
 				env: {
@@ -77,11 +76,14 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 			}
 
 			const rawStream = this.subprocess.iterable({ from: "all", preserveNewlines: true })
-
-			// Wrap the stream to ensure all chunks are strings (execa can return Uint8Array)
+			const decoder = new TextDecoder("utf-8")
 			const stream = (async function* () {
 				for await (const chunk of rawStream) {
-					yield typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk)
+					if (typeof chunk === "string") {
+						yield chunk
+					} else {
+						yield decoder.decode(chunk, { stream: true })
+					}
 				}
 			})()
 
@@ -162,14 +164,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 	}
 
 	public userInput(input: string) {
-		// if (this.subprocess) {
-		// Write input to the subprocess
-		// this.subprocess.stdin?.write(`${input ? `${input}\n` : ""}`)
-		// } else {
-		// If the subprocess is not running, emit the input as a line
-		// console.log(`[ExecaTerminalProcess#userInput] subprocess not running, emitting input as line: ${input}`)
 		this.emit("line", `${input ? `${input}\n` : ""}`)
-		// }
 	}
 
 	public override abort() {
@@ -247,11 +242,6 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 
 		index++
 		this.lastRetrievedIndex += index
-
-		// console.log(
-		// 	`[ExecaTerminalProcess#getUnretrievedOutput] fullOutput.length=${this.fullOutput.length} lastRetrievedIndex=${this.lastRetrievedIndex}`,
-		// 	output.slice(0, index),
-		// )
 
 		return output.slice(0, index)
 	}

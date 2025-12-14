@@ -202,7 +202,6 @@ export async function executeCommandInTerminal(
 	let accumulatedOutput = ""
 	const callbacks: RooTerminalCallbacks = {
 		onLine: async (lines: string, process: RooTerminalProcess) => {
-			vscode.window.showInformationMessage(`onLine: ${new Date()}`)
 			accumulatedOutput += lines
 			const compressedOutput = Terminal.compressTerminalOutput(
 				accumulatedOutput,
@@ -232,8 +231,6 @@ export async function executeCommandInTerminal(
 			}
 		},
 		onCompleted: (output: string | undefined) => {
-			vscode.window.showInformationMessage(`onCompleted: ${new Date()}`)
-
 			result = Terminal.compressTerminalOutput(
 				output ?? "",
 				terminalOutputLineLimit,
@@ -244,18 +241,15 @@ export async function executeCommandInTerminal(
 			completed = true
 		},
 		onShellExecutionStarted: (pid: number | undefined) => {
-			vscode.window.showInformationMessage(`onShellExecutionStarted: ${new Date()}`)
 			const status: CommandExecutionStatus = { executionId, status: "started", pid, command }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
 		},
 		onShellExecutionComplete: (details: ExitCodeDetails) => {
-			vscode.window.showInformationMessage(`onShellExecutionComplete: ${new Date()}`)
 			const status: CommandExecutionStatus = { executionId, status: "exited", exitCode: details.exitCode }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
 			exitDetails = details
 		},
 		triggerUIToProceed: (lines: string, process: RooTerminalProcess) => {
-			vscode.window.showInformationMessage(`triggerUIToProceed: ${new Date()}`)
 			const status: CommandExecutionStatus = { executionId, status: "output", output: "" }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
 			task.ask("command_output", "").catch(() => {
@@ -265,8 +259,6 @@ export async function executeCommandInTerminal(
 	}
 
 	if (terminalProvider === "vscode") {
-		vscode.window.showInformationMessage(`onNoShellIntegration: ${new Date()}`)
-			
 		callbacks.onNoShellIntegration = async (error: string) => {
 			TelemetryService.instance.captureShellIntegrationError(task.taskId)
 			shellIntegrationError = error
@@ -309,7 +301,7 @@ export async function executeCommandInTerminal(
 				provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
 				await task.say("error", t("common:errors:command_timeout", { seconds: commandExecutionTimeoutSeconds }))
 				task.didToolFailInCurrentTurn = true
-				task.terminalProcess = undefined
+				clearTerminalProcess(task)
 
 				return [
 					false,
@@ -322,7 +314,7 @@ export async function executeCommandInTerminal(
 				clearTimeout(timeoutId)
 			}
 
-			task.terminalProcess = undefined
+			clearTerminalProcess(task)
 		}
 	} else {
 		// No timeout - just wait for the process to complete.
@@ -330,7 +322,7 @@ export async function executeCommandInTerminal(
 			await process
 		} finally {
 			console.timeEnd("runCommand")
-			task.terminalProcess = undefined
+			clearTerminalProcess(task)
 		}
 	}
 
@@ -399,6 +391,17 @@ export async function executeCommandInTerminal(
 			].join("\n"),
 		]
 	}
+}
+
+function clearTerminalProcess(task: Task) {
+	if (!isJetbrainsPlatform() && task) {
+		task.terminalProcess = undefined
+		return
+	}
+
+	setTimeout(() => {
+		task.terminalProcess = undefined
+	}, 150)
 }
 
 export const executeCommandTool = new ExecuteCommandTool()
