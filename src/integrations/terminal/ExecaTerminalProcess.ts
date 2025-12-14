@@ -6,6 +6,7 @@ import { getShell } from "../../utils/shell"
 import type { RooTerminal } from "./types"
 import { BaseTerminalProcess } from "./BaseTerminalProcess"
 import { getIdeaShellEnvWithUpdatePath } from "../../utils/ideaShellEnvLoader"
+import { isJetbrainsPlatform } from "../../utils/platform"
 
 export class ExecaTerminalProcess extends BaseTerminalProcess {
 	private terminalRef: WeakRef<RooTerminal>
@@ -47,7 +48,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 				// Ignore stdin to ensure non-interactive mode and prevent hanging
 				stdin: "ignore",
 				env: {
-					...getIdeaShellEnvWithUpdatePath(process.env.PATH ?? ""),
+					...(isJetbrainsPlatform() ? getIdeaShellEnvWithUpdatePath(process.env) : process.env),
 					// Ensure UTF-8 encoding for Ruby, CocoaPods, etc.
 					LANG: "en_US.UTF-8",
 					LC_ALL: "en_US.UTF-8",

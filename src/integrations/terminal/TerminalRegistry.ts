@@ -51,7 +51,7 @@ export class TerminalRegistry {
 		try {
 			const startDisposable = vscode.window.onDidStartTerminalShellExecution?.(
 				async (e: vscode.TerminalShellExecutionStartEvent) => {
-					if (e?.terminal?.name !== "CoStrict") {
+					if (!isJetbrainsPlatform() && e?.terminal?.name !== "CoStrict") {
 						return
 					}
 					// Get a handle to the stream as early as possible:
@@ -104,9 +104,9 @@ export class TerminalRegistry {
 					}
 					if (!terminal.running) {
 						if (isWin32) {
-							await delay(300)
+							await delay(1000)
 						} else {
-							await delay(150)
+							await delay(500)
 						}
 					}
 

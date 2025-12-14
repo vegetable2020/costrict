@@ -30,11 +30,11 @@ export function loadIdeaShellEnvOnce(context?: vscode.ExtensionContext) {
 	}
 }
 
-export function getIdeaShellEnvWithUpdatePath(pathEnv: string) {
-	mergePath(pathEnv)
+export function getIdeaShellEnvWithUpdatePath(processEnv: any) {
+	mergePath(envSnapshot.PATH ?? "")
 	return {
 		...envSnapshot,
-		...process.env,
+		...processEnv,
 		PATH: envSnapshot.PATH,
 	}
 }
