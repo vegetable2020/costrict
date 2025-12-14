@@ -5,6 +5,7 @@ import { getShell } from "../../utils/shell"
 
 import type { RooTerminal } from "./types"
 import { BaseTerminalProcess } from "./BaseTerminalProcess"
+import { getIdeaShellEnvWithUpdatePath } from "../../utils/ideaShellEnvLoader"
 
 export class ExecaTerminalProcess extends BaseTerminalProcess {
 	private terminalRef: WeakRef<RooTerminal>
@@ -36,7 +37,6 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 
 	public override async run(command: string) {
 		this.command = command
-
 		try {
 			this.isHot = true
 			this.subprocess = execa({
@@ -47,7 +47,7 @@ export class ExecaTerminalProcess extends BaseTerminalProcess {
 				// Ignore stdin to ensure non-interactive mode and prevent hanging
 				stdin: "ignore",
 				env: {
-					...process.env,
+					...getIdeaShellEnvWithUpdatePath(process.env.PATH ?? ""),
 					// Ensure UTF-8 encoding for Ruby, CocoaPods, etc.
 					LANG: "en_US.UTF-8",
 					LC_ALL: "en_US.UTF-8",
