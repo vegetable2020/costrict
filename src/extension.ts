@@ -76,7 +76,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Migrate old settings to new
 	await migrateSettings(context, outputChannel)
 	if (isJetbrainsPlatform()) {
-		vscode.window.showInformationMessage("vscode?.env?.machineId: " + vscode?.env?.machineId)
 		setTimeout(() => {
 			loadIdeaShellEnvOnce(context)
 		}, 1000)

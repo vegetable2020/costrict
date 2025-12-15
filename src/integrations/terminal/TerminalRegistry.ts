@@ -81,7 +81,7 @@ export class TerminalRegistry {
 
 			const endDisposable = vscode.window.onDidEndTerminalShellExecution?.(
 				async (e: vscode.TerminalShellExecutionEndEvent) => {
-					if (e.terminal.name !== "CoStrict") {
+					if (!isJetbrainsPlatform() && e.terminal.name !== "CoStrict") {
 						return
 					}
 					const terminal = this.getTerminalByVSCETerminal(e.terminal)
@@ -147,10 +147,8 @@ export class TerminalRegistry {
 		let newTerminal
 
 		if (provider === "vscode") {
-			vscode.window.showInformationMessage("Unsupported terminal provider: " + provider)
 			newTerminal = new Terminal(this.nextTerminalId++, undefined, cwd)
 		} else {
-			vscode.window.showErrorMessage("Unsupported terminal provider: " + provider)
 			newTerminal = new ExecaTerminal(this.nextTerminalId++, cwd)
 		}
 

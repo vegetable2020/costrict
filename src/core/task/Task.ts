@@ -1456,7 +1456,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 						}
 					} catch (e) {
 						console.warn(
-							`[ExecaTerminalProcess#abort] Failed to kill process ${pid}: ${e instanceof Error ? e.message : String(e)}`,
+							`[ExecaTerminalProcess#abort#handleTerminalOperation] Failed to kill process ${pid}: ${e instanceof Error ? e.message : String(e)}`,
 						)
 					}
 				})
