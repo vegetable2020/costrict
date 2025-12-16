@@ -241,6 +241,7 @@ export async function executeCommandInTerminal(
 			completed = true
 		},
 		onShellExecutionStarted: (pid: number | undefined) => {
+			task.currentProcessPid = pid // Save pid to task for reliable cancellation
 			const status: CommandExecutionStatus = { executionId, status: "started", pid, command }
 			provider?.postMessageToWebview({ type: "commandExecutionStatus", text: JSON.stringify(status) })
 		},
@@ -277,8 +278,12 @@ export async function executeCommandInTerminal(
 	}
 	console.time("runCommand")
 
+	// Clear old persisted process when starting a new command
+	task.persistedTerminalProcess = undefined
+
 	const process = terminal.runCommand(command, callbacks)
 	task.terminalProcess = process
+	task.persistedTerminalProcess = process // Keep a persistent reference for continue operation
 
 	// Implement command execution timeout (skip if timeout is 0).
 	if (commandExecutionTimeout > 0) {
@@ -394,14 +399,18 @@ export async function executeCommandInTerminal(
 }
 
 function clearTerminalProcess(task: Task) {
+	const process = task.terminalProcess
+
 	if (!isJetbrainsPlatform() && task) {
 		task.terminalProcess = undefined
 		return
 	}
 
 	setTimeout(() => {
-		task.terminalProcess = undefined
-	}, 150)
+		if (task.terminalProcess === process) {
+			task.terminalProcess = undefined
+		}
+	}, 1000)
 }
 
 export const executeCommandTool = new ExecuteCommandTool()
