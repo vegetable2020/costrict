@@ -18,6 +18,7 @@ import { isEmpty } from "../../utils/object"
 
 import { McpHub } from "../../services/mcp/McpHub"
 import { CodeIndexManager } from "../../services/code-index/manager"
+import { SkillsManager } from "../../services/skills/SkillsManager"
 
 import { PromptVariables, loadSystemPromptFile } from "./sections/custom-system-prompt"
 
@@ -34,6 +35,7 @@ import {
 	getModesSection,
 	addCustomInstructions,
 	markdownFormattingSection,
+	getSkillsSection,
 } from "./sections"
 import { defaultLang } from "../../utils/language"
 import { getShell } from "../../utils/shell"
@@ -73,6 +75,7 @@ async function generatePrompt(data: {
 	todoList?: TodoItem[]
 	modelId?: string
 	shell?: string
+	skillsManager?: SkillsManager
 }): Promise<string> {
 	let {
 		context,
@@ -92,6 +95,7 @@ async function generatePrompt(data: {
 		rooIgnoreInstructions,
 		partialReadsEnabled,
 		parallelToolCallsEnabled,
+		skillsManager,
 		settings,
 		todoList,
 		modelId,
@@ -119,7 +123,7 @@ async function generatePrompt(data: {
 	// Determine the effective protocol (defaults to 'xml')
 	const effectiveProtocol = getEffectiveProtocol(settings?.toolProtocol)
 
-	const [modesSection, mcpServersSection] = await Promise.all([
+	const [modesSection, mcpServersSection, skillsSection] = await Promise.all([
 		getModesSection(context),
 		shouldIncludeMcp
 			? getMcpServersSection(
@@ -129,6 +133,7 @@ async function generatePrompt(data: {
 					!isNativeProtocol(effectiveProtocol),
 				)
 			: Promise.resolve(""),
+		getSkillsSection(skillsManager, mode as string),
 	])
 
 	// Build tools catalog section only for XML protocol
@@ -175,7 +180,7 @@ ${mcpServersSection}
 ${getCapabilitiesSection(cwd, shouldIncludeMcp ? mcpHub : undefined)}
 
 ${modesSection}
-
+${skillsSection ? `\n${skillsSection}` : ""}
 ${getRulesSection(cwd, settings)}
 
 ${getSystemInfoSection(cwd, shell)}
@@ -213,6 +218,7 @@ export const SYSTEM_PROMPT = async (
 	todoList?: TodoItem[],
 	modelId?: string,
 	parallelToolCallsEnabled?: boolean,
+	skillsManager?: SkillsManager,
 ): Promise<string> => {
 	if (!context) {
 		throw new Error("Extension context is required for generating system prompt")
@@ -289,5 +295,6 @@ ${customInstructions}`
 		todoList,
 		modelId,
 		shell,
+		skillsManager,
 	})
 }
