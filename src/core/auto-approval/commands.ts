@@ -28,6 +28,7 @@ export function containsDangerousSubstitution(source: string): boolean {
 	// ^ is a special escape character in CMD that can be used to bypass Unix-style command sanitizers
 	// Check for caret followed by any shell metacharacter: ", space, &, |, <, >, ^
 	if (shellPath.includes("cmd.exe") && /\^["\s&|<>^]/.test(source)) {
+		console.warn("cmd dangerous:", source)
 		return true
 	}
 
@@ -38,6 +39,7 @@ export function containsDangerousSubstitution(source: string): boolean {
 		(shellPath.includes("pwsh.exe") || shellPath.includes("powershell.exe")) &&
 		/`["\s$;&|<>(){}[\]]/.test(source)
 	) {
+		console.warn("powershell dangerous:", source)
 		return true
 	}
 
