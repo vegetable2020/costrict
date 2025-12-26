@@ -558,7 +558,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		for await (const chunk of stream) {
 			// Check if request was aborted
 			if (this.abortController?.signal.aborted) {
-				return
+				break
 			}
 			const delta = chunk.choices?.[0]?.delta ?? {}
 			const finishReason = chunk.choices?.[0]?.finish_reason
@@ -573,10 +573,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 				}
 				const now = Date.now()
 				// Process in batch when threshold is reached
-				if (
-					contentBuffer.length >= this.apiResponseRenderModeInfo.limit &&
-					time + this.apiResponseRenderModeInfo.interval <= now
-				) {
+				if (time + this.apiResponseRenderModeInfo.interval <= now) {
 					const batchedContent = contentBuffer.join("")
 					for (const processedChunk of matcher.update(batchedContent)) {
 						if (this.abortController?.signal.aborted) {
@@ -920,7 +917,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		for await (const chunk of stream) {
 			// Check if request was aborted
 			if (this.abortController?.signal.aborted) {
-				return
+				break
 			}
 			const delta = chunk.choices?.[0]?.delta
 			const finishReason = chunk.choices?.[0]?.finish_reason

@@ -3,20 +3,16 @@ import { isJetbrainsPlatform } from "../../../utils/platform"
 
 export const renderModes = {
 	noLimit: {
-		limit: 0,
-		interval: 10,
+		interval: 6,
 	},
 	fast: {
-		limit: 0,
-		interval: 25,
+		interval: 15,
 	},
 	medium: {
-		limit: 0,
-		interval: 50,
+		interval: 30,
 	},
 	slow: {
-		limit: 0,
-		interval: 100,
+		interval: 60,
 	},
 }
 
