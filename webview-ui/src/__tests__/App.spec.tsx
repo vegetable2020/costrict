@@ -162,7 +162,7 @@ vi.mock("@src/context/ExtensionStateContext", () => ({
 // Mock environment variables
 vi.mock("process.env", () => ({
 	NODE_ENV: "test",
-	PKG_VERSION: "1.0.0-test",
+	COSTRICT_PKG_VERSION: "1.0.0-test",
 }))
 
 describe("App", () => {

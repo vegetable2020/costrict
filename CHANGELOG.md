@@ -1,5 +1,14 @@
 # CoStrict Change Log
 
+## [2.1.5]
+
+- Add skills support
+- Add detection for Windows CMD special escape characters in dangerous substitutions
+- Remove deprecated simple read file tool implementation
+- Update environment variable prefixes from PKG*\* to COSTRICT_PKG*\* (#844)
+- Sync roocode [last commit](https://github.com/zgsm-ai/costrict/commit/343d5e9dcb4cfc7307275cfd47ce0639f720175d)
+- Fix known issues
+
 ## [2.1.4]
 
 - Fix Suppress 'ask promise was ignored' error in handleError (#9914)

@@ -62,7 +62,7 @@ class ErrorBoundary extends Component<ErrorProps, ErrorState> {
 		const errorDisplay = this.state.error
 		const componentStackDisplay = this.state.componentStack
 
-		const version = process.env.PKG_VERSION || "unknown"
+		const version = process.env.COSTRICT_PKG_VERSION || "unknown"
 
 		return (
 			<div>

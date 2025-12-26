@@ -53,7 +53,7 @@ describe("ErrorBoundary", () => {
 	})
 
 	it("renders error UI when a child component throws", () => {
-		vi.stubEnv("PKG_VERSION", "1.2.3")
+		vi.stubEnv("COSTRICT_PKG_VERSION", "1.2.3")
 
 		// Using the React testing library's render method with an error boundary is tricky
 		// We need to catch and ignore the error during the test

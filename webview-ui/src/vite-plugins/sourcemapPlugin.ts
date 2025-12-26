@@ -104,7 +104,7 @@ export function sourcemapPlugin(): Plugin {
 					path.join(outDir, "sourcemap-manifest.json"),
 					JSON.stringify({
 						enabled: true,
-						version: process.env.PKG_VERSION || "unknown",
+						version: process.env.COSTRICT_PKG_VERSION || "unknown",
 						buildTime: new Date().toISOString(),
 					}),
 				)
