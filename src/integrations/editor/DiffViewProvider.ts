@@ -206,11 +206,14 @@ export class DiffViewProvider {
 
 		const absolutePath = path.resolve(this.cwd, this.relPath)
 		const updatedDocument = this.activeDiffEditor.document
-		const editedContent = updatedDocument.getText()
 
 		if (updatedDocument.isDirty) {
 			await updatedDocument.save()
 		}
+
+		// Get content AFTER save to include any VSCode auto-edits (e.g., insertFinalNewline, trimTrailingWhitespace)
+		// This prevents false positives in user edit detection
+		const editedContent = updatedDocument.getText()
 
 		const editor = await vscode.window.showTextDocument(vscode.Uri.file(absolutePath), {
 			preview: false,
