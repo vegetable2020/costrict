@@ -46,7 +46,7 @@ describe("parseMentions - URL error handling", () => {
 
 		expect(consoleErrorSpy).toHaveBeenCalledWith("Error fetching URL https://example.com:", timeoutError)
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith("common:errors.url_fetch_error_with_url")
-		expect(result).toContain("Error fetching content: Navigation timeout of 30000 ms exceeded")
+		expect(result.text).toContain("Error fetching content: Navigation timeout of 30000 ms exceeded")
 	})
 
 	it("should handle DNS resolution errors", async () => {
@@ -56,7 +56,7 @@ describe("parseMentions - URL error handling", () => {
 		const result = await parseMentions("Check @https://nonexistent.example", "/test", mockUrlContentFetcher)
 
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith("common:errors.url_fetch_error_with_url")
-		expect(result).toContain("Error fetching content: net::ERR_NAME_NOT_RESOLVED")
+		expect(result.text).toContain("Error fetching content: net::ERR_NAME_NOT_RESOLVED")
 	})
 
 	it("should handle network disconnection errors", async () => {
@@ -66,7 +66,7 @@ describe("parseMentions - URL error handling", () => {
 		const result = await parseMentions("Check @https://example.com", "/test", mockUrlContentFetcher)
 
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith("common:errors.url_fetch_error_with_url")
-		expect(result).toContain("Error fetching content: net::ERR_INTERNET_DISCONNECTED")
+		expect(result.text).toContain("Error fetching content: net::ERR_INTERNET_DISCONNECTED")
 	})
 
 	it("should handle 403 Forbidden errors", async () => {
@@ -76,7 +76,7 @@ describe("parseMentions - URL error handling", () => {
 		const result = await parseMentions("Check @https://example.com", "/test", mockUrlContentFetcher)
 
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith("common:errors.url_fetch_error_with_url")
-		expect(result).toContain("Error fetching content: 403 Forbidden")
+		expect(result.text).toContain("Error fetching content: 403 Forbidden")
 	})
 
 	it("should handle 404 Not Found errors", async () => {
@@ -86,7 +86,7 @@ describe("parseMentions - URL error handling", () => {
 		const result = await parseMentions("Check @https://example.com/missing", "/test", mockUrlContentFetcher)
 
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith("common:errors.url_fetch_error_with_url")
-		expect(result).toContain("Error fetching content: 404 Not Found")
+		expect(result.text).toContain("Error fetching content: 404 Not Found")
 	})
 
 	it("should handle generic errors with fallback message", async () => {
@@ -96,7 +96,7 @@ describe("parseMentions - URL error handling", () => {
 		const result = await parseMentions("Check @https://example.com", "/test", mockUrlContentFetcher)
 
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith("common:errors.url_fetch_error_with_url")
-		expect(result).toContain("Error fetching content: Some unexpected error")
+		expect(result.text).toContain("Error fetching content: Some unexpected error")
 	})
 
 	it("should handle non-Error objects thrown", async () => {
@@ -106,7 +106,7 @@ describe("parseMentions - URL error handling", () => {
 		const result = await parseMentions("Check @https://example.com", "/test", mockUrlContentFetcher)
 
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith("common:errors.url_fetch_error_with_url")
-		expect(result).toContain("Error fetching content:")
+		expect(result.text).toContain("Error fetching content:")
 	})
 
 	it("should handle browser launch errors correctly", async () => {
@@ -118,7 +118,7 @@ describe("parseMentions - URL error handling", () => {
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
 			"Error fetching content for https://example.com: Failed to launch browser",
 		)
-		expect(result).toContain("Error fetching content: Failed to launch browser")
+		expect(result.text).toContain("Error fetching content: Failed to launch browser")
 		// Should not attempt to fetch URL if browser launch failed
 		expect(mockUrlContentFetcher.urlToMarkdown).not.toHaveBeenCalled()
 	})
@@ -132,7 +132,7 @@ describe("parseMentions - URL error handling", () => {
 		expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
 			"Error fetching content for https://example.com: String error",
 		)
-		expect(result).toContain("Error fetching content: String error")
+		expect(result.text).toContain("Error fetching content: String error")
 	})
 
 	it("should successfully fetch URL content when no errors occur", async () => {
@@ -141,9 +141,9 @@ describe("parseMentions - URL error handling", () => {
 		const result = await parseMentions("Check @https://example.com", "/test", mockUrlContentFetcher)
 
 		expect(vscode.window.showErrorMessage).not.toHaveBeenCalled()
-		expect(result).toContain('<url_content url="https://example.com">')
-		expect(result).toContain("# Example Content\n\nThis is the content.")
-		expect(result).toContain("</url_content>")
+		expect(result.text).toContain('<url_content url="https://example.com">')
+		expect(result.text).toContain("# Example Content\n\nThis is the content.")
+		expect(result.text).toContain("</url_content>")
 	})
 
 	it("should handle multiple URLs with mixed success and failure", async () => {
@@ -157,9 +157,9 @@ describe("parseMentions - URL error handling", () => {
 			mockUrlContentFetcher,
 		)
 
-		expect(result).toContain('<url_content url="https://example1.com">')
-		expect(result).toContain("# First Site")
-		expect(result).toContain('<url_content url="https://example2.com">')
-		expect(result).toContain("Error fetching content: timeout")
+		expect(result.text).toContain('<url_content url="https://example1.com">')
+		expect(result.text).toContain("# First Site")
+		expect(result.text).toContain('<url_content url="https://example2.com">')
+		expect(result.text).toContain("Error fetching content: timeout")
 	})
 })

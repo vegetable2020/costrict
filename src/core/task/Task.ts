@@ -2451,14 +2451,6 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			// Determine API protocol based on provider and model
 			const modelId = getModelId(this.apiConfiguration)
 			const apiProtocol = getApiProtocol(this.apiConfiguration.apiProvider, modelId)
-			const {
-				showRooIgnoredFiles = false,
-				includeDiagnosticMessages = true,
-				maxDiagnosticMessages = 50,
-				maxReadFileLine = -1,
-				maxReadCharacterLimit = 20000,
-			} = (await this.providerRef.deref()?.getState()) ?? {}
-
 			await this.say(
 				"api_req_started",
 				JSON.stringify({
@@ -2469,8 +2461,15 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 							: this.apiConfiguration?.apiModelId,
 				}),
 			)
+			const {
+				showRooIgnoredFiles = false,
+				includeDiagnosticMessages = true,
+				maxDiagnosticMessages = 50,
+				maxReadFileLine = -1,
+				maxReadCharacterLimit = 20000,
+			} = (await this.providerRef.deref()?.getState()) ?? {}
 
-			const parsedUserContent = await processUserContentMentions({
+			const { content: parsedUserContent, mode: slashCommandMode } = await processUserContentMentions({
 				userContent: currentUserContent,
 				cwd: this.cwd,
 				urlContentFetcher: this.urlContentFetcher,
@@ -2482,6 +2481,18 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				maxReadFileLine,
 				maxReadCharacterLimit,
 			})
+
+			// Switch mode if specified in a slash command's frontmatter
+			if (slashCommandMode) {
+				const provider = this.providerRef.deref()
+				if (provider) {
+					const state = await provider.getState()
+					const targetMode = getModeBySlug(slashCommandMode, state?.customModes)
+					if (targetMode) {
+						await provider.handleModeSwitch(slashCommandMode)
+					}
+				}
+			}
 
 			const environmentDetails = await getEnvironmentDetails(this, currentIncludeFileDetails)
 
@@ -2921,15 +2932,17 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 									// Create or update a text content block directly
 									const lastBlock =
 										this.assistantMessageContent[this.assistantMessageContent.length - 1]
-
+									const _assistantMessage = assistantMessage.includes("<tool_call>")
+										? assistantMessage.split("<tool_call>")[0]
+										: assistantMessage
 									if (lastBlock?.type === "text" && lastBlock.partial) {
 										// Update existing partial text block
-										lastBlock.content = assistantMessage
+										lastBlock.content = _assistantMessage
 									} else {
 										// Create new text block
 										this.assistantMessageContent.push({
 											type: "text",
-											content: assistantMessage,
+											content: _assistantMessage,
 											partial: true,
 										})
 										this.userMessageContentReady = false

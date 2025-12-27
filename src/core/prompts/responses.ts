@@ -63,22 +63,39 @@ export const formatResponse = {
 	},
 
 	noToolsUsed: (protocol?: ToolProtocol, preUserContent?: string, preAssistantMessage?: string) => {
-		const instructions = getToolInstructionsReminder(protocol)
+		// const instructions = getToolInstructionsReminder(protocol)
+		return `SYSTEM NOTICE (MUST COMPLY):
 
-		return `[ERROR] You did not use a tool in your previous response! Please retry with a tool use.
+In the previous turn, no tool was called.
+This violates a system rule: EVERY assistant turn MUST include at least one tool call.
 
-# Previous response history part of content
-${preUserContent ? `\nUser said: ${(preUserContent.length > 300 ? `${preUserContent.slice(0, 300)}...` : preUserContent).trim()}` : ""}
-${preAssistantMessage ? `\nAssistant said: ${(preAssistantMessage.length > 300 ? `${preAssistantMessage.slice(0, 300)}...` : preAssistantMessage).trim()}` : ""}
+In this turn:
+- You MUST call one appropriate tool.
+- Do NOT explain or justify the previous response.
+- Do NOT repeat previous content.
+- Do NOT respond conversationally.
+- If you have completed the user's task, use the attempt_completion tool.`
 
-${instructions}
+		// 		return `SYSTEM NOTICE (MUST COMPLY):
 
-# Next Steps
+		// In the previous turn, no tool was called.
+		// This violates a system rule: EVERY assistant turn MUST include at least one tool call.
 
-If you have completed the user's task, use the attempt_completion tool.
-If you require additional information from the user, use the ask_followup_question tool.
-Otherwise, if you have not completed the task and do not need additional information, then proceed with the next step of the task.
-(This is an automated message, so do not respond to it conversationally.)`
+		// In this turn:
+		// - You MUST call one appropriate tool.
+		// - Do NOT explain or justify the previous response.
+		// - Do NOT repeat previous content.
+		// - Do NOT respond conversationally.
+		// - If you have completed the user's task, use the attempt_completion tool.
+
+		// ${instructions}
+
+		// # Next Steps
+
+		// If you have completed the user's task, use the attempt_completion tool.
+		// If you require additional information from the user, use the ask_followup_question tool.
+		// Otherwise, if you have not completed the task and do not need additional information, then proceed with the next step of the task.
+		// (This is an automated message, so do not respond to it conversationally.)`
 	},
 
 	tooManyMistakes: (feedback?: string, protocol?: ToolProtocol) => {
