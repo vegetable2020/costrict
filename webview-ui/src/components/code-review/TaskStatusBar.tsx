@@ -1,10 +1,10 @@
 import React, { useMemo } from "react"
-import { ReviewIssue, TaskStatus } from "@roo/codeReview"
+import { ReviewIssue, ReviewTaskStatus } from "@roo/codeReview"
 import { CheckIcon, InfoCircledIcon } from "@radix-ui/react-icons"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 
 interface TaskStatusBarProps {
-	taskStatus: TaskStatus
+	taskStatus: ReviewTaskStatus
 	progress: number | null
 	reviewProgress: string
 	message: string
@@ -30,7 +30,7 @@ const TaskStatusBar: React.FC<TaskStatusBarProps> = ({
 	}, [progress, hasRunCodebaseSync])
 	return (
 		<div className="flex items-center mt-5">
-			{taskStatus === TaskStatus.RUNNING && (
+			{taskStatus === ReviewTaskStatus.RUNNING && (
 				<div className="mb-4">
 					<div>
 						<div className="flex items-center">
@@ -58,13 +58,13 @@ const TaskStatusBar: React.FC<TaskStatusBarProps> = ({
 					</div>
 				</div>
 			)}
-			{taskStatus === TaskStatus.COMPLETED && issues.length === 0 && (
+			{taskStatus === ReviewTaskStatus.COMPLETED && issues.length === 0 && (
 				<div className="flex items-center mb-4">
 					<CheckIcon color="#50B371" width={20} height={20} />
 					<span className="ml-2">{t("codereview:taskStatusBar.completed")}</span>
 				</div>
 			)}
-			{taskStatus === TaskStatus.ERROR && (
+			{taskStatus === ReviewTaskStatus.ERROR && (
 				<div className="w-full mb-4">
 					<div className="w-full flex items-center">
 						<InfoCircledIcon

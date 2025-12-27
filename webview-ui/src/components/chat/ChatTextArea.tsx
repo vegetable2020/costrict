@@ -2,7 +2,7 @@ import React, { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, us
 import { useEvent } from "react-use"
 import DynamicTextArea from "react-textarea-autosize"
 import { VolumeX, Image, WandSparkles, SendHorizontal /* MessageSquareX */ } from "lucide-react"
-import { TaskStatus } from "@roo/codeReview"
+import { ReviewTaskStatus } from "@roo/codeReview"
 
 import { mentionRegex, mentionRegexGlobal, commandRegexGlobal, unescapeSpaces } from "@roo/context-mentions"
 import { WebviewMessage } from "@roo/WebviewMessage"
@@ -1417,7 +1417,7 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 							onChange={handleModeChange}
 							triggerClassName="min-w-[28px] text-ellipsis overflow-hidden flex-shrink"
 							modeShortcutText={modeShortcutText}
-							isReviewing={mode === "review" && reviewTask.status === TaskStatus.RUNNING}
+							isReviewing={mode === "review" && reviewTask.status === ReviewTaskStatus.RUNNING}
 							customModes={customModes}
 							customModePrompts={customModePrompts}
 						/>

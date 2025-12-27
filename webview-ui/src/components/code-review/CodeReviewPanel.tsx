@@ -1,10 +1,10 @@
 import React from "react"
 import TaskStatusBar from "./TaskStatusBar"
 import CodeReviewContent from "./CodeReviewContent"
-import { ReviewIssue, TaskStatus } from "@roo/codeReview"
+import { ReviewIssue, ReviewTaskStatus } from "@roo/codeReview"
 interface CodeReviewPanelProps {
 	issues: ReviewIssue[]
-	taskStatus: TaskStatus
+	taskStatus: ReviewTaskStatus
 	progress: number | null
 	reviewProgress: string
 	errorMessage: string

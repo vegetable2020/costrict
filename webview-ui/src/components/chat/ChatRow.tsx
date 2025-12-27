@@ -78,7 +78,7 @@ import { getJumpLine } from "@/utils/path-mentions"
 import { useZgsmUserInfo } from "@/hooks/useZgsmUserInfo"
 import { format } from "date-fns"
 import { PathTooltip } from "../ui/PathTooltip"
-import { TaskStatus } from "@roo/codeReview"
+import { ReviewTaskStatus } from "@roo/codeReview"
 
 // Helper function to get previous todos before a specific message
 function getPreviousTodos(messages: ClineMessage[], currentMessageTs: number): any[] {
@@ -404,7 +404,7 @@ export const ChatRowContent = ({
 						style={{ color: successColor, marginBottom: "-1.5px" }}></span>,
 					<span style={{ color: successColor, fontWeight: "bold" }}>
 						{t("chat:taskCompleted")}{" "}
-						{reviewTask.status === TaskStatus.COMPLETED && (
+						{reviewTask.status === ReviewTaskStatus.COMPLETED && (
 							<a
 								href="javascript:void(0)"
 								onClick={(e) => {

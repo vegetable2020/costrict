@@ -25,9 +25,9 @@ import { ZgsmAuthConfig, ZgsmAuthService } from "../auth"
 import {
 	ReviewIssue,
 	IssueStatus,
-	TaskStatus,
+	ReviewTaskStatus,
 	ReviewTarget,
-	TaskData,
+	ReviewTaskData,
 	ReviewTargetType,
 } from "../../../shared/codeReview"
 import { ExtensionMessage } from "../../../shared/ExtensionMessage"
@@ -103,12 +103,12 @@ export class CodeReviewService {
 	/**
 	 * Get task status from current task state
 	 */
-	private getTaskStatusFromState(): TaskStatus {
-		if (!this.currentTask) return TaskStatus.INITIAL
-		if (this.currentTask.error) return TaskStatus.ERROR
-		if (this.currentTask.isCompleted) return TaskStatus.COMPLETED
-		if (this.currentTask.progress > 0) return TaskStatus.RUNNING
-		return TaskStatus.INITIAL
+	private getTaskStatusFromState(): ReviewTaskStatus {
+		if (!this.currentTask) return ReviewTaskStatus.INITIAL
+		if (this.currentTask.error) return ReviewTaskStatus.ERROR
+		if (this.currentTask.isCompleted) return ReviewTaskStatus.COMPLETED
+		if (this.currentTask.progress > 0) return ReviewTaskStatus.RUNNING
+		return ReviewTaskStatus.INITIAL
 	}
 
 	/**
@@ -192,7 +192,7 @@ export class CodeReviewService {
 
 	public async handleAuthError() {
 		if (!this.clineProvider) return
-		this.sendReviewTaskUpdateMessage(TaskStatus.ERROR, {
+		this.sendReviewTaskUpdateMessage(ReviewTaskStatus.ERROR, {
 			issues: [],
 			progress: 0,
 			error: t("common:review.tip.login_expired"),
@@ -663,7 +663,7 @@ export class CodeReviewService {
 		this.currentTask.error = undefined
 
 		// Send task completed message with unified event
-		this.sendReviewTaskUpdateMessage(TaskStatus.COMPLETED, {
+		this.sendReviewTaskUpdateMessage(ReviewTaskStatus.COMPLETED, {
 			issues: this.getAllCachedIssues(),
 			progress: this.currentTask.progress,
 		})
@@ -735,7 +735,7 @@ export class CodeReviewService {
 	 * @param status - Task status
 	 * @param data - Task data
 	 */
-	public sendReviewTaskUpdateMessage(status: TaskStatus, data: TaskData): void {
+	public sendReviewTaskUpdateMessage(status: ReviewTaskStatus, data: ReviewTaskData): void {
 		this.sendMessageToWebview({
 			type: "reviewTaskUpdate",
 			values: {
@@ -746,7 +746,7 @@ export class CodeReviewService {
 	}
 
 	public pushErrorToWebview(error: any): void {
-		this.sendReviewTaskUpdateMessage(TaskStatus.ERROR, {
+		this.sendReviewTaskUpdateMessage(ReviewTaskStatus.ERROR, {
 			issues: [],
 			progress: 0,
 			error: error.message,

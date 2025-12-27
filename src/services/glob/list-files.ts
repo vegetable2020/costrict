@@ -10,6 +10,20 @@ import { DIRS_TO_IGNORE } from "./constants"
 import delay from "delay"
 
 /**
+ * Gitignore cache entry with content and modification time
+ */
+interface GitignoreCacheEntry {
+	content: string
+	mtime: number
+}
+
+/**
+ * Simple in-memory cache for .gitignore files to avoid repeated disk I/O
+ * Key: file path, Value: { content, mtime }
+ */
+const gitignoreCache = new Map<string, GitignoreCacheEntry>()
+
+/**
  * Context object for directory scanning operations
  */
 export interface ScanContext {
@@ -222,7 +236,9 @@ async function listFilesWithRipgrep(
  */
 function buildRipgrepArgs(dirPath: string, recursive: boolean): string[] {
 	// Base arguments to list files
-	const args = ["--files", "--hidden", "--follow"]
+	// Add --sort path to ensure consistent ordering - files are returned in path order
+	// This prioritizes upper-level directories (shorter paths) which users are more likely to need
+	const args = ["--files", "--hidden", "--follow", "--sort", "path"]
 
 	if (recursive) {
 		return [...args, ...buildRecursiveArgs(dirPath), dirPath]
@@ -328,8 +344,34 @@ function buildNonRecursiveArgs(): string[] {
 }
 
 /**
+ * Get .gitignore file content from cache or disk
+ * Uses modification time to validate cached content
+ */
+async function getGitignoreContent(filePath: string): Promise<string | null> {
+	try {
+		const stats = await fs.promises.stat(filePath)
+		const mtime = stats.mtimeMs
+
+		const cached = gitignoreCache.get(filePath)
+		if (cached && cached.mtime === mtime) {
+			// Cache hit and file hasn't changed
+			return cached.content
+		}
+
+		// Read from disk and cache it
+		const content = await fs.promises.readFile(filePath, "utf8")
+		gitignoreCache.set(filePath, { content, mtime })
+		return content
+	} catch (err) {
+		console.warn(`Could not read .gitignore at ${filePath}: ${err}`)
+		return null
+	}
+}
+
+/**
  * Create an ignore instance that handles .gitignore files properly
  * This replaces the custom gitignore parsing with the proper ignore library
+ * Uses caching to avoid repeated disk I/O
  */
 async function createIgnoreInstance(dirPath: string): Promise<ReturnType<typeof ignore>> {
 	const ignoreInstance = ignore()
@@ -338,11 +380,13 @@ async function createIgnoreInstance(dirPath: string): Promise<ReturnType<typeof 
 	// Find all .gitignore files from the target directory up to the root
 	const gitignoreFiles = await findGitignoreFiles(absolutePath)
 
-	// Add patterns from all .gitignore files
+	// Add patterns from all .gitignore files (using cache)
 	for (const gitignoreFile of gitignoreFiles) {
 		try {
-			const content = await fs.promises.readFile(gitignoreFile, "utf8")
-			ignoreInstance.add(content)
+			const content = await getGitignoreContent(gitignoreFile)
+			if (content !== null) {
+				ignoreInstance.add(content)
+			}
 		} catch (err) {
 			// Continue if we can't read a .gitignore file
 			console.warn(`Could not read .gitignore at ${gitignoreFile}: ${err}`)
@@ -413,6 +457,9 @@ async function listFilteredDirectories(
 		gitignoreDirCache: new Map<string, boolean>(),
 	}
 
+	// Concurrent scan limit to avoid overwhelming the filesystem
+	const MAX_CONCURRENT_SCANS = 4
+
 	async function scanDirectory(currentPath: string, context: ScanContext): Promise<boolean> {
 		// Check if we've reached the limit
 		if (dirCount >= effectiveLimit) {
@@ -422,6 +469,13 @@ async function listFilteredDirectories(
 		try {
 			// List all entries in the current directory
 			const entries = await fs.promises.readdir(currentPath, { withFileTypes: true })
+
+			// Collect subdirectories that need to be scanned
+			const subdirsToScan: Array<{
+				dirName: string
+				fullDirPath: string
+				subdirContext: ScanContext
+			}> = []
 
 			// Filter for directories only, excluding symbolic links to prevent circular traversal
 			for (const entry of entries) {
@@ -455,7 +509,7 @@ async function listFilteredDirectories(
 						}
 					}
 
-					// If recursive mode and not a ignored directory, scan subdirectories
+					// If recursive mode and not a ignored directory, prepare to scan subdirectories
 					// Don't recurse into hidden directories unless they are the explicit target
 					// or we're already inside an explicitly targeted hidden directory
 					const isHiddenDir = dirName.startsWith(".")
@@ -485,6 +539,7 @@ async function listFilteredDirectories(
 							!context.isTargetDir &&
 							!context.insideExplicitHiddenTarget
 						)
+
 					if (shouldRecurse) {
 						// If we're entering a hidden directory that's the target, or we're already inside one,
 						// mark that we're inside an explicitly targeted hidden directory
@@ -495,11 +550,31 @@ async function listFilteredDirectories(
 							isTargetDir: false,
 							insideExplicitHiddenTarget: newInsideExplicitHiddenTarget,
 						}
-						const limitReached = await scanDirectory(fullDirPath, newContext)
-						if (limitReached) {
-							return true
-						}
+						subdirsToScan.push({ dirName, fullDirPath, subdirContext: newContext })
 					}
+				}
+			}
+
+			// Scan subdirectories concurrently with limit
+			if (subdirsToScan.length > 0) {
+				let limitReached = false
+
+				// Process in batches to control concurrency
+				for (let i = 0; i < subdirsToScan.length; i += MAX_CONCURRENT_SCANS) {
+					const batch = subdirsToScan.slice(i, i + MAX_CONCURRENT_SCANS)
+					const results = await Promise.all(
+						batch.map(({ fullDirPath, subdirContext }) => scanDirectory(fullDirPath, subdirContext)),
+					)
+
+					// Check if any scan reached the limit
+					if (results.some((reached) => reached)) {
+						limitReached = true
+						break
+					}
+				}
+
+				if (limitReached) {
+					return true
 				}
 			}
 		} catch (err) {
@@ -723,9 +798,7 @@ async function execRipgrep(rgPath: string, args: string[], limit: number): Promi
 
 			// Kill the process if we've reached the limit
 			if (results.length >= limit) {
-				delay(100).finally(() => {
-					rgProcess?.kill()
-				})
+				rgProcess?.kill()
 				clearTimeout(timeoutId) // Clear the timeout when we kill the process due to reaching the limit
 			}
 		})

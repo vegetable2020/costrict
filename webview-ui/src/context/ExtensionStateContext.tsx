@@ -26,7 +26,7 @@ import { RouterModels } from "@roo/api"
 import { vscode } from "@src/utils/vscode"
 import { convertTextMateToHljs } from "@src/utils/textMateToHljs"
 import { defaultCodebaseIndexEnabled } from "../../../src/services/code-index/constants"
-import { ReviewTaskPayload, TaskStatus, ReviewPagePayload } from "@roo/codeReview"
+import { ReviewTaskPayload, ReviewPagePayload, ReviewTaskStatus } from "@roo/codeReview"
 
 export interface ExtensionStateContextType extends ExtensionState {
 	historyPreviewCollapsed?: boolean // Add the new state property
@@ -314,7 +314,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		global: {},
 	})
 	const [reviewTask, setReviewTask] = useState<ReviewTaskPayload>({
-		status: TaskStatus.INITIAL,
+		status: ReviewTaskStatus.INITIAL,
 		data: {
 			issues: [],
 			progress: 0,

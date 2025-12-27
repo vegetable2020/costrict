@@ -221,11 +221,11 @@ export const refreshModels = async (options: GetModelsOptions): Promise<ModelRec
 			const models = await fetchModelsFromProvider(options)
 			const modelCount = Object.keys(models).length
 
-			// Get existing cached data for comparison
-			const existingCache = getModelsFromCache(provider)
-			const existingCount = existingCache ? Object.keys(existingCache).length : 0
-
 			if (modelCount === 0) {
+				// Get existing cached data for comparison
+				const existingCache = getModelsFromCache(provider)
+				const existingCount = existingCache ? Object.keys(existingCache).length : 0
+
 				TelemetryService.instance.captureEvent(TelemetryEventName.MODEL_CACHE_EMPTY_RESPONSE, {
 					provider,
 					context: "refreshModels",

@@ -12,7 +12,7 @@ import { truncateOutput } from "../../../integrations/misc/extract-text"
 
 const execAsync = promisify(exec)
 
-const GIT_OUTPUT_CHAR_LIMIT = 50_000
+const GIT_OUTPUT_CHAR_LIMIT = 80_000
 /**
  * Commit message generator service
  */

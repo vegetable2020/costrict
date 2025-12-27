@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from "react"
 import { CircleAlert } from "lucide-react"
-import { ReviewIssue, TaskStatus, SeverityLevel } from "@roo/codeReview"
+import { ReviewIssue, ReviewTaskStatus, SeverityLevel } from "@roo/codeReview"
 import TaskSummary from "./TaskSummary"
 import FileIssueList from "./FileIssueList"
 import {
@@ -23,7 +23,7 @@ interface FilterState {
 
 interface CodeReviewContentProps {
 	issues: ReviewIssue[]
-	taskStatus: TaskStatus
+	taskStatus: ReviewTaskStatus
 	onIssueClick: (issueId: string) => void
 }
 
@@ -187,7 +187,7 @@ const CodeReviewContent: React.FC<CodeReviewContentProps> = ({ issues, taskStatu
 
 	return (
 		<div className="flex flex-col h-full">
-			{taskStatus === TaskStatus.COMPLETED && (
+			{taskStatus === ReviewTaskStatus.COMPLETED && (
 				<div className="px-5 mb-4">
 					<div className="flex justify-between items-center flex-shrink-0">
 						<TaskSummary issues={filteredIssues} />

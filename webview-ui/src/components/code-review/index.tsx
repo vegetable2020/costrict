@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
-import { TaskStatus } from "@roo/codeReview"
+import { ReviewTaskStatus } from "@roo/codeReview"
 import CodeReviewPanel from "./CodeReviewPanel"
 import WelcomePage from "./WelcomePage"
 import CodebaseSync from "./CodebaseSync"
@@ -29,7 +29,7 @@ const CodeReviewPage: React.FC<CodeReviewPageProps> = ({ isHidden, onIssueClick,
 		if (!isCodebaseReady) {
 			return Page.CodebaseSync
 		}
-		if (status === TaskStatus.INITIAL && issues.length === 0) {
+		if (status === ReviewTaskStatus.INITIAL && issues.length === 0) {
 			return Page.Welcome
 		}
 		return Page.Review
@@ -38,14 +38,14 @@ const CodeReviewPage: React.FC<CodeReviewPageProps> = ({ isHidden, onIssueClick,
 	useEffect(() => {
 		if (!isCodebaseReady) {
 			setPage(Page.CodebaseSync)
-		} else if (status === TaskStatus.INITIAL && issues.length === 0) {
+		} else if (status === ReviewTaskStatus.INITIAL && issues.length === 0) {
 			setPage(Page.Welcome)
 		} else {
 			setPage(Page.Review)
 		}
 	}, [isCodebaseReady, status, issues.length])
 	useEffect(() => {
-		if ([TaskStatus.COMPLETED, TaskStatus.ERROR].includes(status)) {
+		if ([ReviewTaskStatus.COMPLETED, ReviewTaskStatus.ERROR].includes(status)) {
 			setHasShownCodebaseSync(false)
 		}
 	}, [status])
@@ -53,7 +53,7 @@ const CodeReviewPage: React.FC<CodeReviewPageProps> = ({ isHidden, onIssueClick,
 		setPage(Page.Welcome)
 		setHasShownCodebaseSync(false)
 		setReviewTask({
-			status: TaskStatus.INITIAL,
+			status: ReviewTaskStatus.INITIAL,
 			data: {
 				issues: [],
 				progress: null,

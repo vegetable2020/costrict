@@ -90,14 +90,14 @@ export interface ReviewIssue {
 	fix_code: string
 }
 
-export enum TaskStatus {
+export enum ReviewTaskStatus {
 	INITIAL = "initial",
 	RUNNING = "running",
 	COMPLETED = "completed",
 	ERROR = "error",
 }
 
-export interface TaskData {
+export interface ReviewTaskData {
 	issues: ReviewIssue[]
 	progress: number | null
 	reviewProgress?: string
@@ -106,8 +106,8 @@ export interface TaskData {
 }
 
 export interface ReviewTaskPayload {
-	status: TaskStatus
-	data: TaskData
+	status: ReviewTaskStatus
+	data: ReviewTaskData
 }
 
 /**

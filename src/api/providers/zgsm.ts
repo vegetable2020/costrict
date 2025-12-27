@@ -760,11 +760,17 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		if (systemPrompt) {
 			messages.unshift({ role: "system", content: systemPrompt })
 		}
-		const requestOptions: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming & { extra_body: any } = {
+		const requestOptions: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming & {
+			extra_body: any
+			thinking: any
+		} = {
 			model: metadata?.modelId || model.id,
 			messages: messages,
 			temperature: 0.9,
 			max_tokens: metadata?.maxLength ?? 300,
+			thinking: {
+				type: "disabled",
+			},
 			extra_body: {
 				prompt_mode: "raw",
 			},
