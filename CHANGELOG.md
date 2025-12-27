@@ -1,5 +1,14 @@
 # CoStrict Change Log
 
+## [2.1.6]
+
+- Improve code review types and performance
+- Add optional mode field to slash command front matter
+- Capture extended thinking signatures for tool use continuations
+- Add support for npm packages and .env files to custom tools
+- Sync roocode [last commit](https://github.com/zgsm-ai/costrict/commit/13370a2ad1ee03d75e767c97d244f9ffb5b9c3e5)
+- Fix known issues
+
 ## [2.1.5]
 
 - Add skills support
