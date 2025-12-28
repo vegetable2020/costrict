@@ -265,10 +265,6 @@ export class ClaudeCodeOAuthManager {
 	 */
 	async getAccessToken(): Promise<string | null> {
 		if (process.env.ANTHROPIC_AUTH_TOKEN) {
-			console.log(
-				`Claude-code Auth token: ANTHROPIC_AUTH_TOKEN[${process.env.ANTHROPIC_AUTH_TOKEN.slice(0, 10)}...]`,
-			)
-
 			return process.env.ANTHROPIC_AUTH_TOKEN
 		}
 		// Try to load credentials if not already loaded

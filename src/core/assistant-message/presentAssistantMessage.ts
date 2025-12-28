@@ -158,7 +158,14 @@ export async function presentAssistantMessage(cline: Task) {
 					)
 					return
 				}
-
+				const editTools = [
+					"write_to_file",
+					"apply_diff",
+					"search_and_replace",
+					"search_replace",
+					"edit_file",
+					"apply_patch",
+				]
 				let resultContent: string
 				let imageBlocks: Anthropic.ImageBlockParam[] = []
 
@@ -186,6 +193,9 @@ export async function presentAssistantMessage(cline: Task) {
 
 				hasToolResult = true
 				cline.didAlreadyUseTool = true
+				if (editTools.includes(block.name) && block.partial === false) {
+					updateCospecMetadata(cline, block?.params?.path)
+				}
 			}
 
 			// const toolDescription = () => `[mcp_tool: ${mcpBlock.serverName}/${mcpBlock.toolName}]`

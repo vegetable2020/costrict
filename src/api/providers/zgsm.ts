@@ -109,6 +109,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		const requestId = uuidv7()
 		const workflowModes = ["strict", "plan"] as Array<string | undefined>
 		await this.updateModelInfo()
+		const isNative = isNativeProtocol(metadata?.toolProtocol)
 		const fromWorkflow =
 			metadata?.zgsmWorkflowMode ||
 			workflowModes.includes(metadata?.mode) ||
@@ -120,9 +121,8 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 			this.client.maxRetries = 1
 		}
 		// 1. Cache calculation results and configuration
-		const { info: modelInfo, reasoning } = this.getModel()
+		const { info: modelInfo, reasoning, id: modelId } = this.getModel()
 		const modelUrl = this.baseURL || ZgsmAuthConfig.getInstance().getDefaultApiBaseUrl()
-		const modelId = this.options.zgsmModelId || zgsmDefaultModelId
 		const enabledR1Format = this.options.openAiR1FormatEnabled ?? false
 		const enabledLegacyFormat = this.options.openAiLegacyFormat ?? false
 
@@ -144,7 +144,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 
 		// 4. Handle O1 family models
 		if (isO1Family) {
-			yield* this.handleO3FamilyMessage(modelId, systemPrompt, messages)
+			yield* this.handleO3FamilyMessage(modelId, systemPrompt, messages, undefined, isNative)
 			return
 		}
 
@@ -167,16 +167,17 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 					ark,
 					enabledLegacyFormat,
 					modelInfo,
+					isNative,
 				)
 
 				const requestOptions = this.buildStreamingRequestOptions(
-					modelId,
 					convertedMessages,
 					deepseekReasoner,
 					isGrokXAI,
 					reasoning,
 					modelInfo,
 					metadata,
+					isNative,
 				)
 				requestOptions.extra_body.prompt_mode = fromWorkflow ? (metadata?.zgsmCodeMode ?? "vibe") : "vibe"
 				const isAuto = this.options.zgsmModelId === autoModeModelId
@@ -231,7 +232,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 					selectedLLM,
 					selectReason,
 					requestId,
-					isNativeProtocol(metadata?.toolProtocol),
+					isNative,
 					responseIdTimestamp,
 					requestIdTimestamp,
 					metadata?.onPerformanceTiming,
@@ -362,6 +363,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		isArk: boolean,
 		isLegacyFormat: boolean,
 		modelInfo: ModelInfo,
+		isNative: boolean,
 	): OpenAI.Chat.ChatCompletionMessageParam[] {
 		let convertedMessages: OpenAI.Chat.ChatCompletionMessageParam[]
 
@@ -425,23 +427,23 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 	 * Build streaming request options
 	 */
 	private buildStreamingRequestOptions(
-		modelId: string,
 		messages: OpenAI.Chat.ChatCompletionMessageParam[],
 		isDeepseekReasoner: boolean,
 		isGrokXAI: boolean,
 		reasoning: any,
 		modelInfo: ModelInfo,
 		metadata?: ApiHandlerCreateMessageMetadata,
+		isNative?: boolean,
 	): OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming & { extra_body: any } {
 		const requestOptions: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
-			model: modelId,
+			model: modelInfo.id,
 			temperature:
 				this.options.modelTemperature ?? (isDeepseekReasoner ? DEEP_SEEK_DEFAULT_TEMPERATURE : undefined),
 			messages,
 			stream: true as const,
 			...(isGrokXAI ? {} : { stream_options: { include_usage: true } }),
 			...(reasoning && reasoning),
-			...(isNativeProtocol(metadata?.toolProtocol)
+			...(isNative
 				? {
 						...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 						...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
@@ -468,6 +470,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		isLegacyFormat: boolean,
 		modelInfo: ModelInfo,
 		metadata?: ApiHandlerCreateMessageMetadata,
+		isNative?: boolean,
 	): OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming & { extra_body: any } {
 		const systemMessage: OpenAI.Chat.ChatCompletionUserMessageParam = {
 			role: "user",
@@ -480,7 +483,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 				: isLegacyFormat
 					? [systemMessage, ...convertToSimpleMessages(messages)]
 					: [systemMessage, ...convertToOpenAiMessages(messages, { mergeToolResultText: true })],
-			...(isNativeProtocol(metadata?.toolProtocol)
+			...(isNative
 				? {
 						...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 						...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
@@ -806,6 +809,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 		systemPrompt: string,
 		messages: Anthropic.Messages.MessageParam[],
 		metadata?: ApiHandlerCreateMessageMetadata,
+		isNative?: boolean,
 	): ApiStream {
 		await this.updateModelInfo()
 		const modelInfo = this.getModel().info
@@ -827,7 +831,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 				...(isGrokXAI ? {} : { stream_options: { include_usage: true } }),
 				reasoning_effort: modelInfo.reasoningEffort as "low" | "medium" | "high" | undefined,
 				temperature: undefined,
-				...(isNativeProtocol(metadata?.toolProtocol)
+				...(isNative
 					? {
 							...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 							...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
@@ -865,7 +869,7 @@ export class ZgsmAiHandler extends BaseProvider implements SingleCompletionHandl
 				],
 				reasoning_effort: modelInfo.reasoningEffort as "low" | "medium" | "high" | undefined,
 				temperature: undefined,
-				...(isNativeProtocol(metadata?.toolProtocol)
+				...(isNative
 					? {
 							...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 							...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
