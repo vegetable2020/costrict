@@ -1,5 +1,12 @@
 # CoStrict Change Log
 
+## [2.1.7]
+
+- Add concurrent file reads limit to read_file tool (default max 5 files)
+- Remove extended thinking signature capture from Anthropic provider
+- Sync roocode [last commit](https://github.com/zgsm-ai/costrict/commit/7980cd39f6d593b26ff6e8277140e989baf57b58)
+- Fix known issues
+
 ## [2.1.6]
 
 - Improve code review types and performance
